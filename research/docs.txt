@@ -1,0 +1,68 @@
+Technical overview
+
+Resources:
+    https://www.youtube.com/watch?v=B7seNuQncvU
+    https://gbdev.io/pandocs
+    https://hacktixme.ga/GBEDG/concepts
+
+SPEC: 
+    Work RAM    : 8KB
+    Video RAM   : 8KB
+    Resolution  : 160 x 144
+    Sprites     : 8 x 8 | 8 x 16
+    Colors      : 4 shades of Green
+    Sound       : 4 Channel Stereo output
+
+Memory Map
+    0x0000 - 0x3FFF : 16KB ROM bank 00
+    0x4000 - 0x7FFF : 16KB ROM bank 01 ~ NN
+    0x8000 - 0x9FFF : 8KB Video RAM
+    0xA000 - 0xBFFF : 8KB External RAM
+    0xC000 - 0xDFFF : 8KB Work RAM (0xD000 - 0xDFFF - Switchable bank 1~7 in CGB mode)
+    0xE000 - 0xFDFF : Mirror of C000~DDFF
+    0xFE00 - 0xFE95 : Sprite Attribute table (OAM)
+    0xFEA0 - 0xFE9F : Not Usable
+    0xFF00 - 0xFF7F : I/O Registers
+        0xFF70 -> Register to map Bank at 0xD000 - 0xDFFF.
+        0xFF4F -> VRAM bank from 0x8000 - 0x9FFF.
+    0xFF80 - 0xFFFE : High RAM / Cache
+    0xFFFF - 0xFFFF : Interrupt Enable register
+
+Maximum Size of a gameboy cartridge without an MBC (Memory Bank Controller) was 32KB
+
+Registers:
+CPU Registers:
+    AF  Accumulator & Flags
+    BC  
+    DE
+    HL
+    SP  Stack Pointer
+    PC  Program Counter
+
+Flag Register
+    Bit     Name    Exp
+    7       Z       Zero Flag
+    6       N       Add/Sun Flag (BCD).
+    5       H       Half Carry Flag (BCD)
+    4       C       Carry Flag.
+    3-0     -       Not used.
+
+Graphics:
+
+Tiling:
+    The GBA doesnt manipulate Pixel by Pixel but rather 8x8px tiles.
+    Given a tileset it is arranged in specific order where the tile is mapped to some place on the background.
+    Tilesets are numbered and these numbers are used to map a specific part of the background
+    Tile set is an array of Tiles (8x8px) 384 length.
+    Video RAM includes the background and sprites
+    Take the tiles from the tiloset and VRAM and compose what is going to be drawn next
+    Tile set and video ram are manipulated by the code that the game code is running
+    the canvas buffer is manipulated by us
+
+
+INSTRUCTIONS:
+
+1. LD nn, n
+    Put value n into nn
+    Flag register: Unmodified
+    nn -> 
