@@ -1,6 +1,6 @@
 package cpu
 
-type register uint8
+type Register uint8
 
 const (
 	A = 0
@@ -20,6 +20,6 @@ const (
 	ZERO      = 0b10000000
 )
 
-func initRegisters() [8]register {
-	return [8]register{}
+func initRegisters() [8]Register {
+	return [8]Register{}
 }
