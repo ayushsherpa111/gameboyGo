@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/ayushsherpa111/gameboyEMU/instructions"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
@@ -12,6 +13,7 @@ type CPU struct {
 	pc        uint16
 	SP        uint16
 	memory    *memory.Memory
+	store     []instructions.Instruction
 }
 
 func NewCPU() *CPU {
@@ -34,7 +36,7 @@ func (c *CPU) GetRegister(reg uint8) Register {
 }
 
 func (c *CPU) Fetch() uint8 {
-	b := c.memory.GetByte(c.pc)
+	_, b := c.memory.GetByte(c.pc)
 	c.pc++
 	return b
 }
@@ -44,14 +46,25 @@ func (c *CPU) Fetch16() uint16 {
 }
 
 func (c *CPU) SetMem(addr uint16, val uint8) {
-	c.memory.SetByte(addr, val)
+	if e := c.memory.SetByte(addr, val); e != nil {
+		log.Fatalf("Error setting byte in memory.")
+	}
+}
+
+func (c *CPU) GetMem(addr uint16) uint8 {
+	err, b := c.memory.GetByte(addr)
+	if err != nil {
+		log.Fatalf("Error at cpu.go %s\n", err.Error())
+		return 0
+	}
+	return b
 }
 
 func (c *CPU) combine(reg1, reg2 int) uint16 {
 	return uint16(c.registers[reg1])<<8 | uint16(c.registers[reg2])
 }
 
-func (c *CPU) af() uint16 {
+func (c *CPU) AF() uint16 {
 	return c.combine(A, F)
 }
 
@@ -59,11 +72,11 @@ func (c *CPU) BC() uint16 {
 	return c.combine(B, C)
 }
 
-func (c *CPU) de() uint16 {
+func (c *CPU) DE() uint16 {
 	return c.combine(D, E)
 }
 
-func (c *CPU) hl() uint16 {
+func (c *CPU) HL() uint16 {
 	return c.combine(H, L)
 }
 
