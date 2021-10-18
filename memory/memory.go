@@ -19,11 +19,11 @@ func validateMemAddr(addr, memLen int) error {
 	return nil
 }
 
-func (m *Memory) GetByte(addr uint16) (error, byte) {
+func (m *Memory) GetByte(addr uint16) (error, *byte) {
 	if err := validateMemAddr(int(addr), len(m.memory)); err != nil {
-		return err, 0
+		return err, nil
 	}
-	return nil, m.memory[addr]
+	return nil, &m.memory[addr]
 }
 
 func (m *Memory) SetByte(addr uint16, val byte) error {

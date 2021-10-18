@@ -5,9 +5,21 @@ import (
 	"github.com/ayushsherpa111/gameboyEMU/instructions"
 )
 
-func NewOpcodeStore(cpu *cpu.CPU) []instructions.Instruction {
-	opStore := make([]instructions.Instruction, 0xFF)
-	opStore[0x00] = NewNOP("NOP", 0x00)
-	opStore[0x01] = NewLD("LD BC, u16", 0x01, cpu)
+func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
+	NOP := NewNOP("NOP", 0x0)
+	LD := NewLD(cpu)
+	INC := NewInc(cpu)
+	DEC := NewDEC(cpu)
+	JR := NewJR(cpu)
+	opStore := [0xFF]instructions.Instruction{
+		NOP, // 0x00
+		LD,  // 0x01
+		LD,  // 0x02
+		INC, // 0x03
+		INC, // 0x04
+		DEC, // 0x05
+		LD,  // 0x06
+		JR,  // FIX
+	}
 	return opStore
 }

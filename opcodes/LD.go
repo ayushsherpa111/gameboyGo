@@ -5,15 +5,13 @@ import (
 )
 
 type ld struct {
-	label string
-	op    byte
-	c     *cpu.CPU
+	c *cpu.CPU
 }
 
 // Load into a 16 bit register
 func (i *ld) r16_u16(r1, r2 uint8, val uint16) {
-	i.c.SetRegister(r1, cpu.Register(val&0x00FF))
-	i.c.SetRegister(r2, cpu.Register((val&0xFF00)>>8))
+	i.c.SetRegister(r1, uint8(val&0x00FF))
+	i.c.SetRegister(r2, uint8((val&0xFF00)>>8))
 }
 
 // Load into memory
@@ -27,7 +25,7 @@ func (i *ld) r16_u8(addr uint16, val uint8) {
 
 // Load into 8bit register
 func (i *ld) r8_u8(reg uint8, val uint8) {
-	i.c.SetRegister(reg, cpu.Register(val))
+	i.c.SetRegister(reg, uint8(val))
 }
 
 // Load into memory from Stack pointer
@@ -38,7 +36,7 @@ func (i *ld) u16_SP(mem uint16) {
 
 // Load from memory into register
 func (i *ld) r8_u16(reg uint8, addr uint16) {
-	i.c.SetRegister(reg, cpu.Register(i.c.GetMem(addr)))
+	i.c.SetRegister(reg, *i.c.GetMem(addr))
 }
 
 // Load uint16 into Stack pointer
@@ -47,17 +45,85 @@ func (i *ld) SP_u16(val uint16) {
 }
 
 func (i *ld) r8_r8(to, from uint8) {
-	i.c.SetRegister(to, i.c.GetRegister(from))
+	i.c.SetRegister(to, *i.c.GetRegister(from))
 }
 
-func (i *ld) Exec() {
-	switch i.op {
+func ld_tar(opcode uint8) uint8 {
+	var tar uint8
+	lower := opcode & 0x0F
+	upper := opcode & 0xF0
+	switch {
+	case upper == 0x40:
+		if lower >= 0x00 && lower <= 0x07 {
+			tar = cpu.B
+		} else if lower >= 0x08 && lower <= 0x0F {
+			tar = cpu.C
+		}
+	case upper == 0x50:
+		if lower >= 0x00 && lower <= 0x07 {
+			tar = cpu.D
+		} else if lower >= 0x08 && lower <= 0x0F {
+			tar = cpu.E
+		}
+	case upper == 0x60:
+		if lower >= 0x00 && lower <= 0x07 {
+			tar = cpu.H
+		} else if lower >= 0x08 && lower <= 0x0F {
+			tar = cpu.L
+		}
+	case upper == 0x70:
+		tar = cpu.A
+	}
+	return tar
+}
+
+func ld_src(opcode uint8) uint8 {
+	var src uint8
+	lower := opcode & 0x0F
+	switch lower % 8 {
+	case 0x00:
+		src = cpu.B
+	case 0x01:
+		src = cpu.C
+	case 0x02:
+		src = cpu.D
+	case 0x03:
+		src = cpu.E
+	case 0x04:
+		src = cpu.H
+	case 0x05:
+		src = cpu.L
+	case 0x07:
+		src = cpu.A
+	}
+	return src
+}
+
+func (i *ld) LD_HL_SPi8() {
+	var i8 int16 = int16(i.c.Fetch())
+	i.c.SET_ZERO(false)
+	i.c.SET_NEG(false)
+
+	sum := int16(i.c.SP) + i8
+
+	i.c.SET_HALF_CARRY(int32(i.c.SP)&0x0FFF+int32(i8)&0x0FFF > 0x0FFF)
+	i.c.SET_CARRY(int32(i.c.SP)&0xFFFF+int32(i8)&0xFFFF > 0xFFFF)
+
+	i.c.SetRegister(cpu.H, uint8(sum))
+	i.c.SetRegister(cpu.L, uint8(sum>>8))
+}
+
+func (i *ld) Exec(opcode byte) {
+	A := i.c.GetRegister(cpu.A)
+	C := i.c.GetRegister(cpu.C)
+	HL := i.c.HL()
+	switch opcode {
 	case 0x01:
 		// LD BC, u16
 		i.r16_u16(cpu.B, cpu.C, i.c.Fetch16())
 	case 0x02:
 		// LD (BC), A
-		i.u16_u8(i.c.BC(), uint8(i.c.GetRegister(cpu.A)))
+		i.u16_u8(i.c.BC(), *A)
 	case 0x06:
 		// LD B, u8
 		i.r8_u8(cpu.B, i.c.Fetch())
@@ -75,7 +141,7 @@ func (i *ld) Exec() {
 		i.r16_u16(cpu.D, cpu.E, i.c.Fetch16())
 	case 0x12:
 		// LD DE, A
-		i.u16_u8(i.c.DE(), uint8(i.c.GetRegister(cpu.A)))
+		i.u16_u8(i.c.DE(), *A)
 	case 0x16:
 		// LD D, u8
 		i.r8_u8(cpu.D, i.c.Fetch())
@@ -89,14 +155,14 @@ func (i *ld) Exec() {
 		i.r16_u16(cpu.H, cpu.L, i.c.Fetch16())
 	case 0x22:
 		mem := i.c.HL() + 1
-		i.r16_u8(mem, uint8(i.c.GetRegister(cpu.A)))
+		i.r16_u8(mem, *A)
 	case 0x26:
 		// LD H, u8
 		i.r8_u8(cpu.H, i.c.Fetch())
 	case 0x2A:
 		// LD A, (HL+)
-		HL := i.c.HL() + 1
-		i.r8_u8(cpu.A, i.c.GetMem(HL))
+		HL += 1
+		i.r8_u8(cpu.A, *i.c.GetMem(HL))
 	case 0x2E:
 		// LD L, u8
 		i.r8_u8(cpu.L, i.c.Fetch())
@@ -105,40 +171,74 @@ func (i *ld) Exec() {
 		i.SP_u16(i.c.Fetch16())
 	case 0x32:
 		// LD (HL-), A
-		mem := i.c.HL() - 1
-		i.u16_u8(mem, uint8(i.c.GetRegister(cpu.A)))
+		mem := HL - 1
+		i.u16_u8(mem, *A)
 	case 0x36:
 		// LD (HL), u8
 		i.u16_u8(i.c.HL(), i.c.Fetch())
 	case 0x3A:
 		// LD A, (HL-)
-		mem := i.c.HL() - 1
+		mem := HL - 1
 		i.r8_u16(cpu.A, mem)
 	case 0x3E:
 		// LD A, u8
 		i.r8_u8(cpu.A, i.c.Fetch())
-	case 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47:
-		// LD B,[B, C, D, F, H, L, (HL), A]
-		if i.op != 0x46 {
+	case 0xE0:
+		// LD (0xFF00+u8), A
+		i.u16_u8(0xFF00+uint16(i.c.Fetch()), *A)
+	case 0xE2:
+		// LD (0xFF00+C), A
+		i.u16_u8(0xFF00+uint16(*C), *A)
+	case 0xEA:
+		// LD (u16), A
+		i.u16_u8(i.c.Fetch16(), *A)
+	case 0xF0:
+		// LD (0xFF00+u8), A
+		i.r8_u16(cpu.A, 0xFF00+uint16(i.c.Fetch()))
+	case 0xF2:
+		// LD A, (0xFF00+C)
+		i.r8_u16(cpu.A, (0xFF00 + uint16(*C)))
+	case 0xF8:
+		// LD HL, SP+i8
+	case 0xF9:
+		i.SP_u16(HL)
+	case 0xFA:
+		// LD A, (u16)
+		i.r8_u16(cpu.A, i.c.Fetch16())
+	}
+
+	switch {
+	case opcode >= 0x40 || opcode <= 0x7f:
+		// 0x40 - 0x47 = LD B
+		// 0x48 - 0x4F = LD C
+		// 0x50 - 0x57 = LD D
+		// 0x58 - 0x5F = LD E
+		// 0x60 - 0x57 = LD H
+		// 0x68 - 0x5F = LD L
+		// 0x70 - 0x77 = LD (HL)
+		// 0x78 - 0x7F = LD A
+
+		// Not LD (HL)
+		if !(opcode >= 0x70 && opcode <= 0x77) {
 			// TODO map registers to numbers in the above order
-			// i.r8_r8(cpu.B, )
+			r1 := ld_tar(opcode)
+			if (opcode&0x0F)%8 != 0x06 {
+				r2 := ld_src(opcode)
+				i.r8_r8(r1, r2)
+			} else {
+				i.r8_u16(r1, i.c.HL())
+			}
 		} else {
-			// LD B, (HL)
-			i.r8_u16(cpu.B, i.c.HL())
+			// LD (HL)
+			i.u16_u8(i.c.HL(), ld_src(opcode))
 		}
 	default:
 		panic("invalid opcode")
 	}
 }
 
-func (i *ld) Label() string {
-	return i.label
-}
-
-func NewLD(label string, op byte, cpu *cpu.CPU) *ld {
+func NewLD(cpu *cpu.CPU) *ld {
 	return &ld{
-		label,
-		op,
-		cpu,
+		c: cpu,
 	}
 }

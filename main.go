@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -9,14 +10,14 @@ import (
 )
 
 func main() {
-	// TODO
 	_, err := ioutil.ReadFile("./ROMs/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
 	if err != nil {
 		log.Fatalf("Invalid ROM %s\n", err.Error())
 	}
 	cpu := cpu.NewCPU()
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
-	for {
-		cpu.Decode(store)
-	}
+	fmt.Println(store)
+	// for {
+	// 	cpu.Decode(store)
+	// }
 }
