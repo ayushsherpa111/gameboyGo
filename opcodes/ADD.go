@@ -13,7 +13,6 @@ func (a *add) _add(tar *uint8, src uint8) {
 	a.c.SET_HALF_CARRY((*tar & 0x0F) == 0x0F)
 
 	*tar += src
-
 }
 
 func (a *add) add_r8_r8(r1, r2 uint8) {
@@ -24,8 +23,6 @@ func (a *add) add_r8_u8(r1, v2 uint8) {
 	a._add(a.c.GetRegister(r1), v2)
 }
 
-// TODO FIX carry and half carry logic
-// TODO Carry have to be cast to uint32 since it is not cast to uint32 implicitly
 func (a *add) add_u16_u16(r1, r2 uint8, src uint16) {
 	a.c.SET_NEG(false)
 
