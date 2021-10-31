@@ -32,7 +32,7 @@ func (s *sub) sub_r8_u8(val uint8) {
 // TODO do the same for add
 func (s *sub) Exec(op byte) {
 	if v, ok := s.regMap[op&0x0F]; ok {
-		s.sub_r8_u8(v)
+		s.sub_r8_u8(*s.c.GetRegister(v))
 	} else {
 		switch op {
 		case 0x96:

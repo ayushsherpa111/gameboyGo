@@ -23,7 +23,6 @@ func (a *ADC) add_r8_u8(u8 uint8) {
 }
 
 func (a *ADC) Exec(op byte) {
-
 	if v, ok := a.regMap[op&0x0F]; ok {
 		a.add_r8_u8(*a.c.GetRegister(v))
 	} else {

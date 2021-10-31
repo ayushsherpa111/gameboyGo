@@ -14,13 +14,15 @@ type CPU struct {
 	SP        uint16
 	memory    *memory.Memory
 	store     []instructions.Instruction
+	romFILE   []byte
 }
 
-func NewCPU() *CPU {
+func NewCPU(rom []byte) *CPU {
 	return &CPU{
 		registers: initRegisters(),
 		PC:        0x0,
 		memory:    memory.InitMem(),
+		romFILE:   rom,
 	}
 }
 
@@ -125,6 +127,12 @@ func (c *CPU) ZeroFlag() bool {
 
 func (c *CPU) CarryFlag() bool {
 	return (c.registers[F] & CARRY) != 0
+}
+func (c *CPU) PushSP(val uint16) {
+	c.SP -= 1
+	c.SetMem(c.SP, uint8(val>>8))
+	c.SP -= 1
+	c.SetMem(c.SP, uint8(val))
 }
 
 func (c *CPU) FetchSP() uint16 {
