@@ -8,10 +8,7 @@ type ADC struct {
 }
 
 func (a *ADC) add_r8_u8(u8 uint8) {
-	var carry uint8 = 0x0
-	if a.c.CarryFlag() {
-		carry = 0x1
-	}
+	var carry uint8 = a.c.CarryVal()
 	A := a.c.GetRegister(cpu.A)
 
 	a.c.SET_NEG(false)

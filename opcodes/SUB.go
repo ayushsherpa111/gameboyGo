@@ -21,10 +21,7 @@ func (s *sub) _SUB(val uint8, carry uint8) {
 }
 
 func (s *sub) sub_r8_u8(val uint8) {
-	var carry uint8
-	if s.c.CarryFlag() {
-		carry = 0x01
-	}
+	var carry uint8 = s.c.CarryVal()
 
 	s._SUB(val, carry)
 }

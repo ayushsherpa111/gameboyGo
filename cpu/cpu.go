@@ -128,6 +128,18 @@ func (c *CPU) ZeroFlag() bool {
 func (c *CPU) CarryFlag() bool {
 	return (c.registers[F] & CARRY) != 0
 }
+
+func (c *CPU) NegativeFlag() bool {
+	return (c.registers[F] & NEG) != 0
+}
+
+func (c *CPU) CarryVal() uint8 {
+	if c.CarryFlag() {
+		return 0x01
+	}
+	return 0x00
+}
+
 func (c *CPU) PushSP(val uint16) {
 	c.SP -= 1
 	c.SetMem(c.SP, uint8(val>>8))

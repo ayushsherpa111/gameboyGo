@@ -12,12 +12,8 @@ type sbc struct {
 func (s *sbc) SUB_r8_u8(val uint8) {
 	s.c.SET_NEG(true)
 
-	var carry uint8 = 0x0
+	var carry uint8 = s.c.CarryVal()
 	A := s.c.GetRegister(cpu.A)
-
-	if s.c.CarryFlag() {
-		carry = 0x01
-	}
 
 	s.c.SET_HALF_CARRY(*A&0x0F < (carry&0x0F)+val)
 	s.c.SET_CARRY(uint16(*A) < uint16(carry&0x0F)+uint16(val))
