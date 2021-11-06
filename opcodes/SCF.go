@@ -12,6 +12,6 @@ func (s *scf) Exec(op byte) {
 	s.c.SET_CARRY(true)
 }
 
-func NewSCF() *scf {
-	return &scf{}
+func NewSCF(c *cpu.CPU) *scf {
+	return &scf{c}
 }

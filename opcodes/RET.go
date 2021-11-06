@@ -34,7 +34,7 @@ func (r *ret) Exec(op byte) {
 		// RET
 		r.RET_COND(true)
 	case 0xD9:
-		// TODO figure out scheduling events
+		// TODO: figure out scheduling events
 	default:
 		panic("Invalid opcode for RET")
 	}

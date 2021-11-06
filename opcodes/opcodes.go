@@ -16,6 +16,9 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 	JP := NewJP(cpu)
 	RR := NewRR(cpu)
 	RL := NewRl(cpu)
+	DAA := NewDAA(cpu)
+	CPL := NewCPL(cpu)
+	SCF := NewSCF(cpu)
 
 	opStore := [0xFF]instructions.Instruction{
 		NOP,  // 0x00
@@ -57,7 +60,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 		INC,  // 0x24
 		DEC,  // 0x25
 		LD,   // 0x26
-		nil,  // 0x27
+		DAA,  // 0x27
 		JR,   // 0x28
 		ADD,  // 0x29
 		LD,   // 0x2A
@@ -65,7 +68,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 		INC,  // 0x2C
 		DEC,  // 0x2D
 		LD,   // 0x2E
-		nil,  // 0x2F
+		CPL,  // 0x2F
 		JR,   // 0x30
 		LD,   // 0x31
 		LD,   // 0x32
@@ -73,7 +76,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 		INC,  // 0x34
 		DEC,  // 0x35
 		LD,   // 0x36
-		nil,  // 0x37
+		SCF,  // 0x37
 		JR,   // 0x38
 		ADD,  // 0x39
 		LD,   // 0x3a

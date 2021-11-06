@@ -1,22 +1,24 @@
 package main
 
 import (
-	"io/ioutil"
-	"log"
+	"fmt"
+	"os"
 
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 	"github.com/ayushsherpa111/gameboyEMU/opcodes"
 )
 
 func main() {
-	f, err := ioutil.ReadFile("./ROMs/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
-	if err != nil {
-		log.Fatalf("Invalid ROM %s\n", err.Error())
+	ROM := "./ROMs/07-jr,jp,call,ret,rst.gb"
+	cpu := cpu.NewCPU()
+	if ok, err := cpu.Load_ROM(ROM); !ok {
+		fmt.Println((err.Error()))
+		os.Exit(-1)
 	}
-	cpu := cpu.NewCPU(f)
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
 
 	for {
 		cpu.Decode(store)
+		fmt.Scanln()
 	}
 }

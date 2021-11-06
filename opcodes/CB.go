@@ -22,6 +22,8 @@ func NewCB(c *cpu.CPU) *cb {
 	SR := NewSR(c)
 	SWAP := NewSwap(c)
 	BIT := NewBIT(c)
+	RES := NewRes(c)
+	SET := NewSET(c)
 	subMap := map[byte]instructions.Instruction{}
 
 	var i uint8
@@ -44,6 +46,16 @@ func NewCB(c *cpu.CPU) *cb {
 		subMap[i|0x50] = BIT
 		subMap[i|0x60] = BIT
 		subMap[i|0x70] = BIT
+
+		subMap[i|0x80] = RES
+		subMap[i|0x90] = RES
+		subMap[i|0xA0] = RES
+		subMap[i|0xB0] = RES
+
+		subMap[i|0xC0] = SET
+		subMap[i|0xD0] = SET
+		subMap[i|0xE0] = SET
+		subMap[i|0xF0] = SET
 	}
 
 	return &cb{

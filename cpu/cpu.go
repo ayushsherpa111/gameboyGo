@@ -1,8 +1,11 @@
 package cpu
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/ayushsherpa111/gameboyEMU/instructions"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
@@ -14,16 +17,23 @@ type CPU struct {
 	SP        uint16
 	memory    *memory.Memory
 	store     []instructions.Instruction
-	romFILE   []byte
 }
 
-func NewCPU(rom []byte) *CPU {
+func NewCPU() *CPU {
 	return &CPU{
 		registers: initRegisters(),
-		PC:        0x0,
+		PC:        0x100,
 		memory:    memory.InitMem(),
-		romFILE:   rom,
 	}
+}
+
+func (c *CPU) Load_ROM(ROM string) (bool, error) {
+	ROMData, err := ioutil.ReadFile(ROM)
+	if err != nil || len(ROMData) < 0x8000 {
+		return false, errors.New(fmt.Sprintf("Failed to read ROM file. ERR: %s\n", err.Error()))
+	}
+
+	return true, nil
 }
 
 func (c *CPU) SET_CARRY(set bool) {
@@ -70,8 +80,13 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 }
 
 func (c *CPU) Fetch() uint8 {
-	_, b := c.memory.GetByte(c.PC)
-	c.PC++
+	e, b := c.memory.GetByte(c.PC)
+	if e != nil {
+		fmt.Printf("Error Reading from memory. LOG: %s", e.Error())
+		os.Exit(-1)
+	}
+	fmt.Printf("PC: %02x Opcode %02X\n", c.PC, *b)
+	c.PC += 1
 	return *b
 }
 
@@ -117,7 +132,6 @@ func (c *CPU) HL() uint16 {
 func (c *CPU) Decode(store [0xFF]instructions.Instruction) {
 	// FETCH instruction
 	inst := c.Fetch()
-	fmt.Println(inst)
 	store[inst].Exec(inst)
 }
 
@@ -131,6 +145,10 @@ func (c *CPU) CarryFlag() bool {
 
 func (c *CPU) NegativeFlag() bool {
 	return (c.registers[F] & NEG) != 0
+}
+
+func (c *CPU) HalfCarryFlag() bool {
+	return (c.registers[F] & HALFCARRY) != 0
 }
 
 func (c *CPU) CarryVal() uint8 {
