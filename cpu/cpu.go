@@ -1,13 +1,10 @@
 package cpu
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 
-	"github.com/ayushsherpa111/gameboyEMU/instructions"
+	instructions "github.com/ayushsherpa111/gameboyEMU/interfaces"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
 )
 
@@ -15,25 +12,19 @@ type CPU struct {
 	registers [8]uint8
 	PC        uint16
 	SP        uint16
-	memory    *memory.Memory
+	memory    memory.Mem
 	store     []instructions.Instruction
+	ime       bool
 }
 
-func NewCPU() *CPU {
+func NewCPU(mem memory.Mem) *CPU {
 	return &CPU{
 		registers: initRegisters(),
-		PC:        0x100,
-		memory:    memory.InitMem(),
+		PC:        0x000,
+		SP:        0xFFFE,
+		memory:    mem,
+		ime:       false,
 	}
-}
-
-func (c *CPU) Load_ROM(ROM string) (bool, error) {
-	ROMData, err := ioutil.ReadFile(ROM)
-	if err != nil || len(ROMData) < 0x8000 {
-		return false, errors.New(fmt.Sprintf("Failed to read ROM file. ERR: %s\n", err.Error()))
-	}
-
-	return true, nil
 }
 
 func (c *CPU) SET_CARRY(set bool) {
@@ -42,6 +33,7 @@ func (c *CPU) SET_CARRY(set bool) {
 	} else {
 		c.registers[F] &= ^CARRY
 	}
+	fmt.Printf("CARRY Flag Changed. Final Value: 0b%08b\n", c.registers[F]&CARRY)
 }
 
 func (c *CPU) SET_ZERO(set bool) {
@@ -50,6 +42,7 @@ func (c *CPU) SET_ZERO(set bool) {
 	} else {
 		c.registers[F] &= ^ZERO
 	}
+	fmt.Printf("Zero Flag Changed. Final Value: 0b%08b\n", c.registers[F]&ZERO)
 }
 
 func (c *CPU) SET_HALF_CARRY(set bool) {
@@ -58,6 +51,7 @@ func (c *CPU) SET_HALF_CARRY(set bool) {
 	} else {
 		c.registers[F] &= ^HALFCARRY
 	}
+	fmt.Printf("HalfCarry Flag Changed. Final Value: 0b%08b\n", c.registers[F]&HALFCARRY)
 }
 
 func (c *CPU) SET_NEG(set bool) {
@@ -66,6 +60,7 @@ func (c *CPU) SET_NEG(set bool) {
 	} else {
 		c.registers[F] &= ^NEG
 	}
+	fmt.Printf("NEG Flag Changed. Final Value: 0b%08b\n", c.registers[F]&NEG)
 }
 
 func (c *CPU) SetRegister(reg uint8, val uint8) {
@@ -80,12 +75,7 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 }
 
 func (c *CPU) Fetch() uint8 {
-	e, b := c.memory.GetByte(c.PC)
-	if e != nil {
-		fmt.Printf("Error Reading from memory. LOG: %s", e.Error())
-		os.Exit(-1)
-	}
-	fmt.Printf("PC: %02x Opcode %02X\n", c.PC, *b)
+	b := c.memory.MemRead(c.PC)
 	c.PC += 1
 	return *b
 }
@@ -95,18 +85,13 @@ func (c *CPU) Fetch16() uint16 {
 }
 
 func (c *CPU) SetMem(addr uint16, val uint8) {
-	if e := c.memory.SetByte(addr, val); e != nil {
+	if e := c.memory.MemWrite(addr, val); e != nil {
 		log.Fatalf("Error setting byte in memory.")
 	}
 }
 
 func (c *CPU) GetMem(addr uint16) *uint8 {
-	err, b := c.memory.GetByte(addr)
-	if err != nil {
-		log.Fatalf("Error at cpu.go %s\n", err.Error())
-		return nil
-	}
-	return b
+	return c.memory.MemRead(addr)
 }
 
 func (c *CPU) combine(reg1, reg2 int) uint16 {
@@ -132,6 +117,7 @@ func (c *CPU) HL() uint16 {
 func (c *CPU) Decode(store [0xFF]instructions.Instruction) {
 	// FETCH instruction
 	inst := c.Fetch()
+	fmt.Printf("PC: 0x%02x OP:0x%02x\n", c.PC, inst)
 	store[inst].Exec(inst)
 }
 

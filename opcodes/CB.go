@@ -1,17 +1,20 @@
 package opcodes
 
 import (
+	"fmt"
+
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
-	"github.com/ayushsherpa111/gameboyEMU/instructions"
+	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 )
 
 type cb struct {
 	c      *cpu.CPU
-	subMap map[byte]instructions.Instruction
+	subMap map[byte]interfaces.Instruction
 }
 
 func (c *cb) Exec(op byte) {
 	nextOP := c.c.Fetch()
+	fmt.Printf("PC: 0x%x SUB CB: 0x%02x\n", c.c.PC, nextOP)
 	c.subMap[nextOP].Exec(nextOP)
 }
 
@@ -24,7 +27,7 @@ func NewCB(c *cpu.CPU) *cb {
 	BIT := NewBIT(c)
 	RES := NewRes(c)
 	SET := NewSET(c)
-	subMap := map[byte]instructions.Instruction{}
+	subMap := map[byte]interfaces.Instruction{}
 
 	var i uint8
 	for i = 0; i < 0xF; i++ {
