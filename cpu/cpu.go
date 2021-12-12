@@ -33,7 +33,7 @@ func (c *CPU) SET_CARRY(set bool) {
 	} else {
 		c.registers[F] &= ^CARRY
 	}
-	fmt.Printf("CARRY Flag Changed. Final Value: 0b%08b\n", c.registers[F]&CARRY)
+	// fmt.Printf("CARRY Flag Changed. Final Value: 0b%08b\n", c.registers[F]&CARRY)
 }
 
 func (c *CPU) SET_ZERO(set bool) {
@@ -42,7 +42,7 @@ func (c *CPU) SET_ZERO(set bool) {
 	} else {
 		c.registers[F] &= ^ZERO
 	}
-	fmt.Printf("Zero Flag Changed. Final Value: 0b%08b\n", c.registers[F]&ZERO)
+	// fmt.Printf("Zero Flag Changed. Final Value: 0b%08b\n", c.registers[F]&ZERO)
 }
 
 func (c *CPU) SET_HALF_CARRY(set bool) {
@@ -51,7 +51,7 @@ func (c *CPU) SET_HALF_CARRY(set bool) {
 	} else {
 		c.registers[F] &= ^HALFCARRY
 	}
-	fmt.Printf("HalfCarry Flag Changed. Final Value: 0b%08b\n", c.registers[F]&HALFCARRY)
+	// fmt.Printf("HalfCarry Flag Changed. Final Value: 0b%08b\n", c.registers[F]&HALFCARRY)
 }
 
 func (c *CPU) SET_NEG(set bool) {
@@ -60,7 +60,7 @@ func (c *CPU) SET_NEG(set bool) {
 	} else {
 		c.registers[F] &= ^NEG
 	}
-	fmt.Printf("NEG Flag Changed. Final Value: 0b%08b\n", c.registers[F]&NEG)
+	// fmt.Printf("NEG Flag Changed. Final Value: 0b%08b\n", c.registers[F]&NEG)
 }
 
 func (c *CPU) SetRegister(reg uint8, val uint8) {
@@ -114,7 +114,7 @@ func (c *CPU) HL() uint16 {
 	return c.combine(H, L)
 }
 
-func (c *CPU) Decode(store [0xFF]instructions.Instruction) {
+func (c *CPU) FetchDecodeExec(store [0xFF]instructions.Instruction) {
 	// FETCH instruction
 	inst := c.Fetch()
 	fmt.Printf("PC: 0x%02x OP:0x%02x\n", c.PC, inst)

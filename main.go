@@ -26,7 +26,7 @@ func main() {
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
 
 	for {
-		cpu.Decode(store)
+		cpu.FetchDecodeExec(store)
 		// fmt.Scanln()
 	}
 }

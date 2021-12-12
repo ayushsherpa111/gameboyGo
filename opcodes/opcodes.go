@@ -30,6 +30,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 	POP := NewPOP(cpu)
 	CB := NewCB(cpu)
 	PUSH := NewPush(cpu)
+	CALL := NewCall(cpu)
 
 	opStore := [0xFF]instructions.Instruction{
 		NOP,  // 0x00
@@ -132,8 +133,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 
 	opStore[0xC2] = JP
 	opStore[0xC3] = JP
-	// TODO: Implement CALL.go
-	// opStore[0xC4] = CALL
+	opStore[0xC4] = CALL
 
 	// 0xC5-0xF5
 	for i := 0xC5; i < 0x101; i += 0x10 {
@@ -147,21 +147,21 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 	opStore[0xCA] = JP
 	opStore[0xCB] = CB
 
-	// opStore[0xCC] = CALL
-	// opStore[0xCD] = CALL
+	opStore[0xCC] = CALL
+	opStore[0xCD] = CALL
 	opStore[0xCE] = ADC
 	// opStore[0xCF] = RST
 
 	opStore[0xD0] = RET
 	opStore[0xD2] = JP
-	// opStore[0xD4] = CALL
+	opStore[0xD4] = CALL
 	opStore[0xD5] = PUSH
 	opStore[0xD6] = SUB
 	// opStore[0xD7] = RST
 	opStore[0xD8] = RET
 	// opStore[0xD9] = RETI
 	opStore[0xDA] = JP
-	// opStore[0xDC] = CALL
+	opStore[0xDC] = CALL
 	opStore[0xDE] = SBC
 	// opStore[0xDF] = RST
 

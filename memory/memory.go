@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 )
@@ -23,7 +24,17 @@ const (
 	EXT_RAM_END   = 0xBFFF
 
 	W_RAM_START = 0xC000
+	W_RAM_E_MID = 0xDDFF
 	W_RAM_END   = 0xDFFF
+
+	ECHO_RAM_START = 0xE000
+	ECHO_RAM_END   = 0xFDFF
+
+	OAM_START = 0xFE00
+	OAM_END   = 0xFE9F
+
+	HRAM_START = 0xFF80
+	HRAM_END   = 0xFFFE
 
 	IO_START = 0xFF00
 	IO_END   = 0xFF7F
@@ -32,6 +43,18 @@ const (
 
 	INTERRUPT_ENABLE = 0xFFFF
 )
+
+func mapwRAMIndex(addr uint16) uint16 {
+	var newAddr uint16
+	if addr >= W_RAM_START && addr <= W_RAM_END {
+		newAddr = addr - W_RAM_START
+	} else if addr >= ECHO_RAM_START && addr <= ECHO_RAM_END {
+		// Map Echo ram to the same range and work RAM range
+		newAddr = (addr-ECHO_RAM_START)/(ECHO_RAM_END-ECHO_RAM_START)*(W_RAM_E_MID-W_RAM_START) + W_RAM_START
+		newAddr -= W_RAM_START
+	}
+	return newAddr
+}
 
 // 0x0000 - 0x3FFF : ROM Bank 0 [Must be handled thru memory bank controller]
 // 0x4000 - 0x7FFF : ROM Bank 1 - Switchable [Must be handled thru memory bank controller]
@@ -56,6 +79,7 @@ type memory struct {
 	wRAM    []uint8 // 0xC000 - 0xDFFF
 	hRAM    []uint8 // 0xFF80 - 0xFFFE
 	ioRegs  []uint8 // 0xFF00 - 0xFF70
+	OAM     []uint8 // 0xFE00 - 0xFE9F
 	IE      []uint8 // 0xFFFF
 
 	// romswp []uint8
@@ -84,12 +108,13 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 		vRAM:       make([]uint8, 8*1024),
 		eRAM:       make([]uint8, 8*1024),
 		wRAM:       make([]uint8, 8*1024),
+		hRAM:       make([]uint8, 126),
 		romData:    make([]uint8, 32*1024),
 		ioRegs:     make([]uint8, 128),
+		OAM:        make([]uint8, 159),
 		bootloader: bootLoader,
 		rom:        ROM,
 		IE:         make([]uint8, 1),
-		// romswp:     make([]uint8, 256),
 	}
 
 	if e := mem.loadROM(); e != nil {
@@ -113,53 +138,67 @@ func (m *memory) loadROM() error {
 	return nil
 }
 
-func (m *memory) getMemBlock(addr uint16) ([]uint8, uint16) {
-	var newAddrMap uint16
-	var memBlock []uint8
-
+func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
 	if m.isBootLoaderLoaded() && addr < 0x100 {
-		newAddrMap = addr
-		memBlock = m.bootloader
+		return m.read_boot_loader(addr)
 	} else if addr <= ROM_END {
-		newAddrMap = addr
-		memBlock = m.romData
+		return m.read_rom_data(addr)
 	} else if addr <= VRAM_END {
-		newAddrMap = addr - VRAM_START
-		memBlock = m.vRAM
+		return m.read_vram_data(addr)
 	} else if addr <= EXT_RAM_END {
-		newAddrMap = addr - EXT_RAM_START
-		memBlock = m.eRAM
+		return m.read_ext_ram(addr)
 	} else if addr <= W_RAM_END {
-		newAddrMap = addr - W_RAM_START
-		memBlock = m.wRAM
+		return m.read_wram(addr)
+	} else if addr <= ECHO_RAM_END {
+		return m.read_wram(addr)
+	} else if addr <= OAM_END {
+		return m.read_oam(addr)
 	} else if addr <= IO_END {
-		newAddrMap = addr - IO_START
-		memBlock = m.ioRegs
+		return m.read_io(addr)
+	} else if addr <= HRAM_END {
+		return m.read_hram(addr)
 	} else if addr == INTERRUPT_ENABLE {
-		newAddrMap = 0
-		memBlock = m.IE
+		return m.read_IE()
 	}
+	return nil
+}
 
-	return memBlock, newAddrMap
+func (m *memory) getWriteMemBlock(addr uint16) writeMemFunc {
+	if addr <= ROM_END {
+		return m.write_rom(addr)
+	} else if addr <= VRAM_END {
+		return m.write_vram(addr)
+	} else if addr <= EXT_RAM_END {
+		return m.write_eram(addr)
+	} else if addr <= W_RAM_END {
+		return m.write_wram(addr)
+	} else if addr <= ECHO_RAM_END {
+		return m.write_wram(addr)
+	} else if addr <= OAM_END {
+		return m.write_oam(addr)
+	} else if addr <= IO_END {
+		return m.write_io(addr)
+	} else if addr <= HRAM_END {
+		return m.write_hram(addr)
+	} else if addr == INTERRUPT_ENABLE {
+		return m.write_ie(addr)
+	}
+	return nil
 }
 
 func (m *memory) MemRead(addr uint16) *uint8 {
-	mem, newAddr := m.getMemBlock(addr)
-	return &mem[newAddr]
+	fmt.Printf("Reading from 0x%04x\n", addr)
+	mem := m.getReadMemBlock(addr)
+	if mem == nil {
+		// handle error
+		log.Fatalf("Received invalid memory address range: 0x%04X\n", addr)
+		return nil
+	}
+	return mem()
 }
 
 func (m *memory) MemWrite(addr uint16, val uint8) error {
 	fmt.Printf("Writing to: 0x%04x\n", addr)
-	mem, newAddr := m.getMemBlock(addr)
-	mem[newAddr] = val
-	return nil
+	mem := m.getWriteMemBlock(addr)
+	return mem(val)
 }
-
-// func (m *memory) GetByte(addr uint16) (error, *byte) {
-// 	return nil, &m.memory[addr]
-// }
-
-// func (m *memory) SetByte(addr uint16, val byte) error {
-// 	m.memory[addr] = val
-// 	return nil
-// }
