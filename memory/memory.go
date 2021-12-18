@@ -187,7 +187,7 @@ func (m *memory) getWriteMemBlock(addr uint16) writeMemFunc {
 }
 
 func (m *memory) MemRead(addr uint16) *uint8 {
-	fmt.Printf("Reading from 0x%04x\n", addr)
+	// fmt.Printf("Reading from 0x%04x\n", addr)
 	mem := m.getReadMemBlock(addr)
 	if mem == nil {
 		// handle error
@@ -198,7 +198,7 @@ func (m *memory) MemRead(addr uint16) *uint8 {
 }
 
 func (m *memory) MemWrite(addr uint16, val uint8) error {
-	fmt.Printf("Writing to: 0x%04x\n", addr)
+	// fmt.Printf("Writing to: 0x%04x\n", addr)
 	mem := m.getWriteMemBlock(addr)
 	return mem(val)
 }

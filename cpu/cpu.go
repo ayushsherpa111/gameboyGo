@@ -117,7 +117,7 @@ func (c *CPU) HL() uint16 {
 func (c *CPU) FetchDecodeExec(store [0xFF]instructions.Instruction) {
 	// FETCH instruction
 	inst := c.Fetch()
-	fmt.Printf("PC: 0x%02x OP:0x%02x\n", c.PC, inst)
+	fmt.Printf("PC: 0x%02x OP:0x%02x\n", c.PC-1, inst)
 	store[inst].Exec(inst)
 }
 
