@@ -9,7 +9,7 @@ type pop struct {
 func (p *pop) pop_r8(r1, r2 *uint8) {
 	val := p.c.FetchSP()
 	*r2 = uint8(val)
-	*r2 = uint8(val >> 8)
+	*r1 = uint8(val >> 8)
 }
 
 func (p *pop) Exec(op byte) {

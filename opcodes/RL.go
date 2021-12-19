@@ -11,19 +11,38 @@ type rl struct {
 // RLA: Rotate A and use carry flag
 
 func (r *rl) _rl(reg *uint8, carry uint8) {
-
+	r.c.SET_CARRY((*reg & 0x80) == 0x80)
 	r.c.SET_NEG(false)
 	r.c.SET_HALF_CARRY(false)
-	r.c.SET_CARRY(carry != 0)
 
 	*reg <<= 1
 	*reg |= carry
 
-	r.c.SET_ZERO(*reg == 0x00)
+	r.c.SET_ZERO(*reg == 0x0)
 }
 
 func (r *rl) _rlc(reg *uint8) {
-	r._rl(reg, *reg>>7)
+	OF := *reg & 0x80
+	r.c.SET_CARRY(OF > 0x0)
+	*reg <<= 1
+	*reg |= OF
+
+	r.c.SET_ZERO(*reg == 0x0)
+	r.c.SET_NEG(false)
+	r.c.SET_HALF_CARRY(false)
+}
+
+func (r *rl) _rla(carry uint8) {
+	A := r.c.GetRegister(cpu.A)
+	r._rl(A, carry)
+
+	r.c.SET_ZERO(false)
+}
+
+func (r *rl) _rlca() {
+	A := r.c.GetRegister(cpu.A)
+	r._rlc(A)
+
 	r.c.SET_ZERO(false)
 }
 
@@ -37,9 +56,17 @@ func (r *rl) Exec(op byte) {
 	}
 
 	if op&0xF0 == 0x00 {
-		r._rlc(reg)
+		if op == 0x07 {
+			r._rlca()
+		} else {
+			r._rlc(reg)
+		}
 	} else {
-		r._rl(reg, carry)
+		if op == 0x17 {
+			r._rla(carry)
+		} else {
+			r._rl(reg, carry)
+		}
 	}
 }
 

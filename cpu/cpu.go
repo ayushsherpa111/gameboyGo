@@ -156,5 +156,6 @@ func (c *CPU) FetchSP() uint16 {
 	u16 |= uint16(*c.GetMem(c.SP))
 	c.SP++
 	u16 |= uint16(*c.GetMem(c.SP)) << 8
+	c.SP++
 	return u16
 }

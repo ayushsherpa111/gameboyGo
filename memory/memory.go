@@ -40,6 +40,7 @@ const (
 	IO_END   = 0xFF7F
 
 	BOOT_LOADER_FLAG = 0xFF50
+	LY_REG           = 0xFF44
 
 	INTERRUPT_ENABLE = 0xFFFF
 )
@@ -116,6 +117,7 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 		rom:        ROM,
 		IE:         make([]uint8, 1),
 	}
+	mem.getWriteMemBlock(LY_REG)(0x90)
 
 	if e := mem.loadROM(); e != nil {
 		return nil, e
