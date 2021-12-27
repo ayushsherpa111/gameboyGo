@@ -136,6 +136,7 @@ func (m *memory) loadROM() error {
 		return errors.New("Invalid ROM length")
 	}
 	copy(m.romData, romData)
+
 	fmt.Println("ROM file Succesfully loaded.")
 	return nil
 }
