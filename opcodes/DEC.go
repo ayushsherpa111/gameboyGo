@@ -1,8 +1,6 @@
 package opcodes
 
 import (
-	"fmt"
-
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 )
 
@@ -11,14 +9,12 @@ type dec struct {
 }
 
 func (d *dec) _dec(val *uint8) {
-	fmt.Printf("Before DEC 0x%X", *val)
 	d.c.SET_NEG(true)
 	d.c.SET_HALF_CARRY((*val & 0x0F) == 0)
 
 	*(val)--
 
 	d.c.SET_ZERO(*val == 0x00)
-	fmt.Printf("After DEC 0x%X", *val)
 }
 
 // dec_r8 decreases 1 from Register reg and sets flags

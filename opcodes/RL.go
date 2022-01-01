@@ -1,8 +1,6 @@
 package opcodes
 
 import (
-	"fmt"
-
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 )
 
@@ -14,12 +12,7 @@ type rl struct {
 // RLCA: Rotate A and use higher order bit as Carry
 // RLA: Rotate A and use carry flag
 
-// TODO: fix RL. shifting to the right does nothing
-
-// Before RL 0xc000100040 Carry: 0x01
-// After RL 0xc000100040
 func (r *rl) _rl(reg *uint8, carry uint8) {
-	fmt.Printf("Before RL 0x%02x Carry: 0x%02x\n", reg, carry)
 	r.c.SET_CARRY((*reg & 0x80) == 0x80)
 	r.c.SET_NEG(false)
 	r.c.SET_HALF_CARRY(false)
@@ -28,7 +21,6 @@ func (r *rl) _rl(reg *uint8, carry uint8) {
 	*reg |= carry
 
 	r.c.SET_ZERO(*reg == 0x0)
-	fmt.Printf("After RL 0x%x\n", reg)
 }
 
 func (r *rl) _rlc(reg *uint8) {

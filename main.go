@@ -27,6 +27,6 @@ func main() {
 
 	for {
 		cpu.FetchDecodeExec(store)
-		fmt.Scanln()
+		// fmt.Scanln()
 	}
 }

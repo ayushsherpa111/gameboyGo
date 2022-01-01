@@ -1,6 +1,10 @@
 package opcodes
 
-import "github.com/ayushsherpa111/gameboyEMU/cpu"
+import (
+	"fmt"
+
+	"github.com/ayushsherpa111/gameboyEMU/cpu"
+)
 
 type cp struct {
 	c      *cpu.CPU
@@ -9,9 +13,10 @@ type cp struct {
 
 func (c *cp) cp_r8_u8(val uint8) {
 	A := c.c.GetRegister(cpu.A)
+	fmt.Printf("Val of A: 0x%x Val : 0x%x\n", *A, val)
 
 	c.c.SET_NEG(false)
-	c.c.SET_ZERO(*A == 0)
+	c.c.SET_ZERO(*A == val)
 	c.c.SET_HALF_CARRY(*A&0x0F < val&0x0F)
 	c.c.SET_CARRY(*A < val)
 }

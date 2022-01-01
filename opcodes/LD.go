@@ -1,6 +1,8 @@
 package opcodes
 
 import (
+	"fmt"
+
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 )
 
@@ -10,8 +12,9 @@ type ld struct {
 
 // Load into a 16 bit register
 func (i *ld) r16_u16(r1, r2 uint8, val uint16) {
-	i.c.SetRegister(r1, uint8(val&0x00FF))
-	i.c.SetRegister(r2, uint8((val&0xFF00)>>8))
+
+	i.c.SetRegister(r1, uint8(val>>8))
+	i.c.SetRegister(r2, uint8(val))
 }
 
 // Load into memory
@@ -36,6 +39,7 @@ func (i *ld) u16_SP(mem uint16) {
 
 // Load from memory into register
 func (i *ld) r8_u16(reg uint8, addr uint16) {
+	fmt.Printf("Setting Register A(%d): 0x%x\n", reg, *i.c.GetMem(addr))
 	i.c.SetRegister(reg, *i.c.GetMem(addr))
 }
 
@@ -46,6 +50,12 @@ func (i *ld) SP_u16(val uint16) {
 
 func (i *ld) r8_r8(to, from uint8) {
 	i.c.SetRegister(to, *i.c.GetRegister(from))
+}
+
+func (i *ld) r16_sp_u8(highReg, lowReg uint8, val int8) {
+	i.c.SET_ZERO(false)
+	i.c.SET_NEG(false)
+
 }
 
 func ld_tar(opcode uint8) uint8 {
@@ -100,17 +110,17 @@ func ld_src(opcode uint8) uint8 {
 }
 
 func (i *ld) LD_HL_SPi8() {
-	var i8 int16 = int16(i.c.Fetch())
+	var i8 uint8 = i.c.Fetch()
 	i.c.SET_ZERO(false)
 	i.c.SET_NEG(false)
 
-	sum := int16(i.c.SP) + i8
+	i.c.SET_HALF_CARRY((uint8(i.c.SP)&0x0F)+(i8&0x0F) > 0x0F)
+	i.c.SET_CARRY(uint16(uint8(i.c.SP)+i8) > 0xFF)
 
-	i.c.SET_HALF_CARRY(int32(i.c.SP)&0x0FFF+int32(i8)&0x0FFF > 0x0FFF)
-	i.c.SET_CARRY(int32(i.c.SP)&0xFFFF+int32(i8)&0xFFFF > 0xFFFF)
+	sum := int16(i.c.SP) + int16(i8)
 
-	i.c.SetRegister(cpu.H, uint8(sum))
-	i.c.SetRegister(cpu.L, uint8(sum>>8))
+	i.c.SetRegister(cpu.H, uint8(sum>>8))
+	i.c.SetRegister(cpu.L, uint8(sum))
 }
 
 func (i *ld) Exec(opcode byte) {
@@ -154,15 +164,16 @@ func (i *ld) Exec(opcode byte) {
 		// LD HL, u16
 		i.r16_u16(cpu.H, cpu.L, i.c.Fetch16())
 	case 0x22:
-		mem := i.c.HL() + 1
-		i.r16_u8(mem, *A)
+		// LD HL+, A
+		i.r16_u8(HL, *A)
+		i.c.SetHL(HL + 1)
 	case 0x26:
 		// LD H, u8
 		i.r8_u8(cpu.H, i.c.Fetch())
 	case 0x2A:
 		// LD A, (HL+)
-		HL += 1
 		i.r8_u8(cpu.A, *i.c.GetMem(HL))
+		i.c.SetHL(HL + 1)
 	case 0x2E:
 		// LD L, u8
 		i.r8_u8(cpu.L, i.c.Fetch())
@@ -171,15 +182,15 @@ func (i *ld) Exec(opcode byte) {
 		i.SP_u16(i.c.Fetch16())
 	case 0x32:
 		// LD (HL-), A
-		mem := HL - 1
-		i.u16_u8(mem, *A)
+		i.u16_u8(HL, *A)
+		i.c.SetHL(HL - 1)
 	case 0x36:
 		// LD (HL), u8
 		i.u16_u8(i.c.HL(), i.c.Fetch())
 	case 0x3A:
 		// LD A, (HL-)
-		mem := HL - 1
-		i.r8_u16(cpu.A, mem)
+		i.r8_u16(cpu.A, HL)
+		i.c.SetHL(HL - 1)
 	case 0x3E:
 		// LD A, u8
 		i.r8_u8(cpu.A, i.c.Fetch())
@@ -200,6 +211,7 @@ func (i *ld) Exec(opcode byte) {
 		i.r8_u16(cpu.A, (0xFF00 + uint16(*C)))
 	case 0xF8:
 		// LD HL, SP+i8
+		i.LD_HL_SPi8()
 	case 0xF9:
 		i.SP_u16(HL)
 	case 0xFA:

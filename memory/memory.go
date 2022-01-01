@@ -117,8 +117,9 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 		rom:        ROM,
 		IE:         make([]uint8, 1),
 	}
-	mem.getWriteMemBlock(LY_REG)(0x90)
-
+	mem.ioRegs[LY_REG-IO_START] = 0x90
+	fmt.Printf("VALUE AT LY %x\n", *mem.getReadMemBlock(LY_REG)())
+	fmt.Scanln()
 	if e := mem.loadROM(); e != nil {
 		return nil, e
 	}
@@ -157,6 +158,7 @@ func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
 	} else if addr <= OAM_END {
 		return m.read_oam(addr)
 	} else if addr <= IO_END {
+		fmt.Printf("HERE, %x \n", addr)
 		return m.read_io(addr)
 	} else if addr <= HRAM_END {
 		return m.read_hram(addr)
@@ -180,6 +182,7 @@ func (m *memory) getWriteMemBlock(addr uint16) writeMemFunc {
 	} else if addr <= OAM_END {
 		return m.write_oam(addr)
 	} else if addr <= IO_END {
+		fmt.Printf("HERE, %x\n", addr)
 		return m.write_io(addr)
 	} else if addr <= HRAM_END {
 		return m.write_hram(addr)

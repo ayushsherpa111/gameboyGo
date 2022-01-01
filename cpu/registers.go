@@ -1,7 +1,7 @@
 package cpu
 
 const (
-	A = 0
+	A = iota
 	B
 	C
 	D
@@ -17,7 +17,3 @@ const (
 	NEG       uint8 = 0b01000000
 	ZERO      uint8 = 0b10000000
 )
-
-func initRegisters() [8]uint8 {
-	return [8]uint8{}
-}

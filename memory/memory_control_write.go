@@ -16,7 +16,6 @@ func (m *memory) write_rom(addr uint16) writeMemFunc {
 
 func (m *memory) write_vram(addr uint16) writeMemFunc {
 	newAddr := addr - VRAM_START
-	fmt.Printf("0x%x\n", newAddr)
 	return func(val uint8) error {
 		m.vRAM[newAddr] = val
 		return nil
@@ -50,8 +49,9 @@ func (m *memory) write_oam(addr uint16) writeMemFunc {
 
 func (m *memory) write_io(addr uint16) writeMemFunc {
 	newAddr := addr - IO_START
+	fmt.Printf("Trying to write to address %x Not allowed\n", newAddr)
 	return func(u uint8) error {
-		m.ioRegs[newAddr] = u
+		// m.ioRegs[newAddr] = u
 		return nil
 	}
 }

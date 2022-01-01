@@ -1,8 +1,6 @@
 package opcodes
 
 import (
-	"fmt"
-
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 )
 
@@ -12,7 +10,6 @@ type push struct {
 
 func (p *push) push_r16(val uint16) {
 	p.c.PushSP(val)
-	fmt.Printf("Pushing 0x%02x\n", val)
 }
 
 func (p *push) Exec(op byte) {

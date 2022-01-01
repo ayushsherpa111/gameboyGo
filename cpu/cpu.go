@@ -19,7 +19,7 @@ type CPU struct {
 
 func NewCPU(mem memory.Mem) *CPU {
 	return &CPU{
-		registers: initRegisters(),
+		registers: [8]uint8{},
 		PC:        0x000,
 		SP:        0xFFFE,
 		memory:    mem,
@@ -33,7 +33,7 @@ func (c *CPU) SET_CARRY(set bool) {
 	} else {
 		c.registers[F] &= ^CARRY
 	}
-	// fmt.Printf("CARRY Flag Changed. Final Value: 0b%08b\n", c.registers[F]&CARRY)
+	// fmt.Printf("CARRY flag Changed. Final Value: 0b%08b\n", c.registers[F]&CARRY)
 }
 
 func (c *CPU) SET_ZERO(set bool) {
@@ -64,9 +64,7 @@ func (c *CPU) SET_NEG(set bool) {
 }
 
 func (c *CPU) SetRegister(reg uint8, val uint8) {
-	if reg < A || reg > L {
-		return
-	}
+	// fmt.Printf("Setting Register %d \n", val)
 	c.registers[reg] = val
 }
 
@@ -98,26 +96,47 @@ func (c *CPU) combine(reg1, reg2 int) uint16 {
 	return uint16(c.registers[reg1])<<8 | uint16(c.registers[reg2])
 }
 
+func (c *CPU) setMulReg(reg1, reg2 int, val uint16) {
+	c.registers[reg1] = uint8(val >> 8)
+	c.registers[reg2] = uint8(val)
+}
+
 func (c *CPU) AF() uint16 {
 	return c.combine(A, F)
+}
+
+func (c *CPU) SetAF(val uint16) {
+	c.setMulReg(A, F, val)
 }
 
 func (c *CPU) BC() uint16 {
 	return c.combine(B, C)
 }
 
+func (c *CPU) SetBC(val uint16) {
+	c.setMulReg(B, C, val)
+}
+
 func (c *CPU) DE() uint16 {
 	return c.combine(D, E)
+}
+
+func (c *CPU) SetDE(val uint16) {
+	c.setMulReg(D, E, val)
 }
 
 func (c *CPU) HL() uint16 {
 	return c.combine(H, L)
 }
 
+func (c *CPU) SetHL(val uint16) {
+	c.setMulReg(H, L, val)
+}
+
 func (c *CPU) FetchDecodeExec(store [0xFF]instructions.Instruction) {
 	// FETCH instruction
 	inst := c.Fetch()
-	fmt.Printf("PC: 0x%02x OP:0x%02x\n", c.PC-1, inst)
+	fmt.Printf("PC: 0x%02x OP:0x%02x Flag: 0b%08b\n", c.PC-1, inst, c.registers[F])
 	store[inst].Exec(inst)
 }
 
@@ -138,7 +157,7 @@ func (c *CPU) HalfCarryFlag() bool {
 }
 
 func (c *CPU) CarryVal() uint8 {
-	if c.CarryFlag() {
+	if v := c.CarryFlag(); v {
 		return 0x01
 	}
 	return 0x00
