@@ -49,9 +49,9 @@ func (m *memory) write_oam(addr uint16) writeMemFunc {
 
 func (m *memory) write_io(addr uint16) writeMemFunc {
 	newAddr := addr - IO_START
-	fmt.Printf("Trying to write to address %x Not allowed\n", newAddr)
+	fmt.Printf("Trying to write to address 0x%04x Not allowed\n", addr)
 	return func(u uint8) error {
-		// m.ioRegs[newAddr] = u
+		m.ioRegs[newAddr] = u
 		return nil
 	}
 }

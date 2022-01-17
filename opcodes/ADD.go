@@ -89,7 +89,11 @@ func (a *add) Exec(op byte) {
 		a.add_r8_r8(cpu.A, cpu.A)
 	case 0xC6:
 		// ADD A, u8
-		a.add_r8_u8(cpu.A, a.c.Fetch())
+		arg, err := a.c.Fetch()
+		if err != nil {
+			return
+		}
+		a.add_r8_u8(cpu.A, arg)
 	case 0xE8:
 		// ADD SP, i8
 		a.add_SP_i8()

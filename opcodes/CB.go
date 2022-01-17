@@ -13,7 +13,7 @@ type cb struct {
 }
 
 func (c *cb) Exec(op byte) {
-	nextOP := c.c.Fetch()
+	nextOP, _ := c.c.Fetch()
 	fmt.Printf("PC: 0x%x SUB CB: 0x%02x\n", c.c.PC, nextOP)
 	c.subMap[nextOP].Exec(nextOP)
 }

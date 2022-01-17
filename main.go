@@ -11,11 +11,11 @@ import (
 )
 
 //go:embed ROMs/BOOTLOADER.gb
-var boot_loader []byte
+var bootLoader []byte
 
 func main() {
-	ROM := "./ROMs/Tetris.gb"
-	mem, err := memory.InitMem(boot_loader, ROM)
+	ROM := os.Args[1]
+	mem, err := memory.InitMem(bootLoader, ROM)
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -23,10 +23,13 @@ func main() {
 	}
 
 	cpu := cpu.NewCPU(mem)
+	go cpu.ListenIMEChan()
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
 
 	for {
-		cpu.FetchDecodeExec(store)
-		// fmt.Scanln()
+		if e := cpu.FetchDecodeExec(store); e != nil {
+			cpu.CloseChan <- struct{}{}
+			return
+		}
 	}
 }

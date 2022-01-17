@@ -24,12 +24,16 @@ func (o *or) Exec(op byte) {
 	if v, ok := o.keyMap[op&0x0F]; ok {
 		o.or_r8_u8(*o.c.GetRegister(v))
 	} else {
+		arg, err := o.c.Fetch()
+		if err != nil {
+			return
+		}
 		switch op {
 		case 0xB6:
 			HL := o.c.HL()
 			o.or_r8_u8(*o.c.GetMem(HL))
 		case 0xF6:
-			o.or_r8_u8(o.c.Fetch())
+			o.or_r8_u8(arg)
 		default:
 			panic("Failed to decode opcode for OR")
 		}

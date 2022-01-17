@@ -6,7 +6,7 @@ type ccf struct {
 	c *cpu.CPU
 }
 
-func (c *ccf) Exec() {
+func (c *ccf) Exec(op byte) {
 	c.c.SET_NEG(false)
 	c.c.SET_HALF_CARRY(false)
 	c.c.SET_CARRY(!c.c.CarryFlag())

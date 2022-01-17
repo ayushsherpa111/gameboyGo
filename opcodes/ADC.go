@@ -23,6 +23,10 @@ func (a *ADC) Exec(op byte) {
 	if v, ok := a.regMap[op&0x0F]; ok {
 		a.add_r8_u8(*a.c.GetRegister(v))
 	} else {
+		arg, e := a.c.Fetch()
+		if e != nil {
+			return
+		}
 		switch op {
 		case 0x8E:
 			// ADC A, (HL)
@@ -30,7 +34,7 @@ func (a *ADC) Exec(op byte) {
 			a.add_r8_u8(*a.c.GetMem(HL))
 		case 0xCE:
 			// ADC A, u8
-			a.add_r8_u8(a.c.Fetch())
+			a.add_r8_u8(arg)
 		default:
 			panic("Failed to decode opcode for ADC")
 		}

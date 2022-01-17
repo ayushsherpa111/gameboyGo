@@ -17,22 +17,28 @@ func (j *jr) jumpIf(cond bool, size int8) {
 }
 
 func (j *jr) Exec(op byte) {
+	next, e := j.c.Fetch()
+
+	if e != nil {
+		return
+	}
+
 	switch op {
 	case 0x18:
 		// JR i8
-		j.jr_i8(int8(j.c.Fetch()))
+		j.jr_i8(int8(next))
 	case 0x28:
 		// JR Z, i8
-		j.jumpIf(j.c.ZeroFlag(), int8(j.c.Fetch()))
+		j.jumpIf(j.c.ZeroFlag(), int8(next))
 	case 0x38:
 		// JR C, i8
-		j.jumpIf(j.c.CarryFlag(), int8(j.c.Fetch()))
+		j.jumpIf(j.c.CarryFlag(), int8(next))
 	case 0x20:
 		// JR NZ, i8
-		j.jumpIf(!j.c.ZeroFlag(), int8(j.c.Fetch()))
+		j.jumpIf(!j.c.ZeroFlag(), int8(next))
 	case 0x30:
 		// JR NC, i8
-		j.jumpIf(!j.c.CarryFlag(), int8(j.c.Fetch()))
+		j.jumpIf(!j.c.CarryFlag(), int8(next))
 	default:
 		panic("Invalid Opcode for JR")
 	}

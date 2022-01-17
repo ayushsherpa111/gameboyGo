@@ -22,12 +22,16 @@ func (x *xor) Exec(op byte) {
 	if v, ok := x.keyMap[op&0x0F]; ok {
 		x.xor_r8_u8(*x.c.GetRegister(v))
 	} else {
+		arg, err := x.c.Fetch()
+		if err != nil {
+			return
+		}
 		switch op {
 		case 0xAE:
 			HL := x.c.HL()
 			x.xor_r8_u8(*x.c.GetMem(HL))
 		case 0xEE:
-			x.xor_r8_u8(x.c.Fetch())
+			x.xor_r8_u8(arg)
 		}
 	}
 }

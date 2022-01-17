@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 
+	"github.com/ayushsherpa111/gameboyEMU/cartridge"
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 )
 
@@ -83,12 +83,11 @@ type memory struct {
 	OAM     []uint8 // 0xFE00 - 0xFE9F
 	IE      []uint8 // 0xFFFF
 
-	// romswp []uint8
 	cart interfaces.Cart
 }
 
 func (m *memory) ReadIO(addr uint16) uint8 {
-	addr -= IO_START
+	addr -= uint16(IO_START)
 	return m.ioRegs[addr]
 }
 
@@ -105,6 +104,11 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 		return nil, errors.New("Invalid Bootloader provided")
 	}
 
+	romData, err := ioutil.ReadFile(ROM)
+	if err != nil {
+		return nil, errors.New("Failed to load ROM file")
+	}
+
 	mem := &memory{
 		vRAM:       make([]uint8, 8*1024),
 		eRAM:       make([]uint8, 8*1024),
@@ -116,26 +120,26 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 		bootloader: bootLoader,
 		rom:        ROM,
 		IE:         make([]uint8, 1),
+		cart:       cartridge.NewCart(romData),
 	}
+	fmt.Printf("Is BootLoader loaded : %v\n", mem.isBootLoaderLoaded())
+	mem.cart.HeaderInfo()
 	mem.ioRegs[LY_REG-IO_START] = 0x90
-	fmt.Printf("VALUE AT LY %x\n", *mem.getReadMemBlock(LY_REG)())
-	fmt.Scanln()
-	if e := mem.loadROM(); e != nil {
+
+	if e := mem.loadROM(romData); e != nil {
 		return nil, e
 	}
 
 	return mem, nil
 }
 
-func (m *memory) loadROM() error {
+func (m *memory) loadROM(romData []byte) error {
 	fmt.Println("Loading ROM file...")
-	romData, err := ioutil.ReadFile(m.rom)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to load ROM file. Reason: %s", err.Error()))
-	}
+
 	if len(romData) > (32 << 10) {
 		return errors.New("Invalid ROM length")
 	}
+
 	copy(m.romData, romData)
 
 	fmt.Println("ROM file Succesfully loaded.")
@@ -158,7 +162,6 @@ func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
 	} else if addr <= OAM_END {
 		return m.read_oam(addr)
 	} else if addr <= IO_END {
-		fmt.Printf("HERE, %x \n", addr)
 		return m.read_io(addr)
 	} else if addr <= HRAM_END {
 		return m.read_hram(addr)
@@ -182,7 +185,6 @@ func (m *memory) getWriteMemBlock(addr uint16) writeMemFunc {
 	} else if addr <= OAM_END {
 		return m.write_oam(addr)
 	} else if addr <= IO_END {
-		fmt.Printf("HERE, %x\n", addr)
 		return m.write_io(addr)
 	} else if addr <= HRAM_END {
 		return m.write_hram(addr)
@@ -197,7 +199,6 @@ func (m *memory) MemRead(addr uint16) *uint8 {
 	mem := m.getReadMemBlock(addr)
 	if mem == nil {
 		// handle error
-		log.Fatalf("Received invalid memory address range: 0x%04X\n", addr)
 		return nil
 	}
 	return mem()
@@ -206,5 +207,8 @@ func (m *memory) MemRead(addr uint16) *uint8 {
 func (m *memory) MemWrite(addr uint16, val uint8) error {
 	// fmt.Printf("Writing to: 0x%04x\n", addr)
 	mem := m.getWriteMemBlock(addr)
+	if mem == nil {
+		return errors.New("End of memory reached")
+	}
 	return mem(val)
 }

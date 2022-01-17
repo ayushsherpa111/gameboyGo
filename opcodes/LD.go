@@ -39,8 +39,8 @@ func (i *ld) u16_SP(mem uint16) {
 
 // Load from memory into register
 func (i *ld) r8_u16(reg uint8, addr uint16) {
-	fmt.Printf("Setting Register A(%d): 0x%x\n", reg, *i.c.GetMem(addr))
 	i.c.SetRegister(reg, *i.c.GetMem(addr))
+	fmt.Printf("VAL OF A : %x\n", *i.c.GetRegister(cpu.A))
 }
 
 // Load uint16 into Stack pointer
@@ -110,7 +110,7 @@ func ld_src(opcode uint8) uint8 {
 }
 
 func (i *ld) LD_HL_SPi8() {
-	var i8 uint8 = i.c.Fetch()
+	i8, _ := i.c.Fetch()
 	i.c.SET_ZERO(false)
 	i.c.SET_NEG(false)
 
@@ -124,6 +124,11 @@ func (i *ld) LD_HL_SPi8() {
 }
 
 func (i *ld) Exec(opcode byte) {
+	// TODO: this breaks fetch16. Moves PC +1 and +2 when calling Fetch16 again
+	// arg, e := i.c.Fetch()
+	// if e != nil {
+	// 	return
+	// }
 	A := i.c.GetRegister(cpu.A)
 	C := i.c.GetRegister(cpu.C)
 	HL := i.c.HL()
@@ -136,7 +141,8 @@ func (i *ld) Exec(opcode byte) {
 		i.u16_u8(i.c.BC(), *A)
 	case 0x06:
 		// LD B, u8
-		i.r8_u8(cpu.B, i.c.Fetch())
+		arg, _ := i.c.Fetch()
+		i.r8_u8(cpu.B, arg)
 	case 0x08:
 		// LD (u16), SP
 		i.u16_SP(i.c.Fetch16())
@@ -145,7 +151,8 @@ func (i *ld) Exec(opcode byte) {
 		i.r8_u16(cpu.A, i.c.BC())
 	case 0x0E:
 		// LD C, u8
-		i.r8_u8(cpu.C, i.c.Fetch())
+		arg, _ := i.c.Fetch()
+		i.r8_u8(cpu.C, arg)
 	case 0x11:
 		// LD DE, u16
 		i.r16_u16(cpu.D, cpu.E, i.c.Fetch16())
@@ -154,12 +161,14 @@ func (i *ld) Exec(opcode byte) {
 		i.u16_u8(i.c.DE(), *A)
 	case 0x16:
 		// LD D, u8
-		i.r8_u8(cpu.D, i.c.Fetch())
+		arg, _ := i.c.Fetch()
+		i.r8_u8(cpu.D, arg)
 	case 0x1A:
 		i.r8_u16(cpu.A, i.c.DE())
 	case 0x1E:
 		// LD E, u8
-		i.r8_u8(cpu.E, i.c.Fetch())
+		arg, _ := i.c.Fetch()
+		i.r8_u8(cpu.E, arg)
 	case 0x21:
 		// LD HL, u16
 		i.r16_u16(cpu.H, cpu.L, i.c.Fetch16())
@@ -169,14 +178,16 @@ func (i *ld) Exec(opcode byte) {
 		i.c.SetHL(HL + 1)
 	case 0x26:
 		// LD H, u8
-		i.r8_u8(cpu.H, i.c.Fetch())
+		arg, _ := i.c.Fetch()
+		i.r8_u8(cpu.H, arg)
 	case 0x2A:
 		// LD A, (HL+)
 		i.r8_u8(cpu.A, *i.c.GetMem(HL))
 		i.c.SetHL(HL + 1)
 	case 0x2E:
 		// LD L, u8
-		i.r8_u8(cpu.L, i.c.Fetch())
+		arg, _ := i.c.Fetch()
+		i.r8_u8(cpu.L, arg)
 	case 0x31:
 		// LD SP, u16
 		i.SP_u16(i.c.Fetch16())
@@ -186,17 +197,20 @@ func (i *ld) Exec(opcode byte) {
 		i.c.SetHL(HL - 1)
 	case 0x36:
 		// LD (HL), u8
-		i.u16_u8(i.c.HL(), i.c.Fetch())
+		arg, _ := i.c.Fetch()
+		i.u16_u8(i.c.HL(), arg)
 	case 0x3A:
 		// LD A, (HL-)
 		i.r8_u16(cpu.A, HL)
 		i.c.SetHL(HL - 1)
 	case 0x3E:
 		// LD A, u8
-		i.r8_u8(cpu.A, i.c.Fetch())
+		arg, _ := i.c.Fetch()
+		i.r8_u8(cpu.A, arg)
 	case 0xE0:
 		// LD (0xFF00+u8), A
-		i.u16_u8(0xFF00+uint16(i.c.Fetch()), *A)
+		arg, _ := i.c.Fetch()
+		i.u16_u8(0xFF00+uint16(arg), *A)
 	case 0xE2:
 		// LD (0xFF00+C), A
 		i.u16_u8(0xFF00+uint16(*C), *A)
@@ -205,7 +219,11 @@ func (i *ld) Exec(opcode byte) {
 		i.u16_u8(i.c.Fetch16(), *A)
 	case 0xF0:
 		// LD (0xFF00+u8), A
-		i.r8_u16(cpu.A, 0xFF00+uint16(i.c.Fetch()))
+		arg, _ := i.c.Fetch()
+		val := 0xFF00 + uint16(arg) // 44
+		fmt.Printf("LOADING INTO A: 0x%x\n", val)
+		i.r8_u16(cpu.A, val)
+		return
 	case 0xF2:
 		// LD A, (0xFF00+C)
 		i.r8_u16(cpu.A, (0xFF00 + uint16(*C)))
@@ -220,7 +238,8 @@ func (i *ld) Exec(opcode byte) {
 	}
 
 	switch {
-	case opcode >= 0x40 || opcode <= 0x7f:
+	case opcode >= 0x40 && opcode <= 0x7f:
+		fmt.Printf("ENTERING HERE 0x%x 0x%x\n", i.c.PC, opcode)
 		// 0x40 - 0x47 = LD B
 		// 0x48 - 0x4F = LD C
 		// 0x50 - 0x57 = LD D
@@ -244,8 +263,6 @@ func (i *ld) Exec(opcode byte) {
 			// LD (HL)
 			i.u16_u8(i.c.HL(), ld_src(opcode))
 		}
-	default:
-		panic("invalid opcode")
 	}
 }
 

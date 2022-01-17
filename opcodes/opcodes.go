@@ -5,7 +5,7 @@ import (
 	instructions "github.com/ayushsherpa111/gameboyEMU/interfaces"
 )
 
-func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
+func NewOpcodeStore(cpu *cpu.CPU) [0x100]instructions.Instruction {
 	NOP := NewNOP()
 	STOP := NewStop()
 	LD := NewLD(cpu)
@@ -31,8 +31,12 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 	CB := NewCB(cpu)
 	PUSH := NewPush(cpu)
 	CALL := NewCall(cpu)
+	RST := NewRST(cpu)
+	DI := NewDI(cpu)
+	EI := NewEI(cpu)
+	CCF := NewCCF(cpu)
 
-	opStore := [0xFF]instructions.Instruction{
+	opStore := [0x100]instructions.Instruction{
 		NOP,  // 0x00
 		LD,   // 0x01
 		LD,   // 0x02
@@ -96,7 +100,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 		INC,  // 0x3c
 		DEC,  // 0x3d
 		LD,   // 0x3e
-		nil,  // 0x3f
+		CCF,  // 0x3f
 	}
 
 	// 0x40 to 0x7F
@@ -140,8 +144,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 		opStore[i] = PUSH
 	}
 	opStore[0xC6] = ADD
-	// TODO: Implement RST.go
-	// opStore[0xC7] = RST
+	opStore[0xC7] = RST
 	opStore[0xC8] = RET
 	opStore[0xC9] = RET
 	opStore[0xCA] = JP
@@ -150,45 +153,44 @@ func NewOpcodeStore(cpu *cpu.CPU) [0xFF]instructions.Instruction {
 	opStore[0xCC] = CALL
 	opStore[0xCD] = CALL
 	opStore[0xCE] = ADC
-	// opStore[0xCF] = RST
+	opStore[0xCF] = RST
 
 	opStore[0xD0] = RET
 	opStore[0xD2] = JP
 	opStore[0xD4] = CALL
 	opStore[0xD5] = PUSH
 	opStore[0xD6] = SUB
-	// opStore[0xD7] = RST
+	opStore[0xD7] = RST
 	opStore[0xD8] = RET
 	// opStore[0xD9] = RETI
 	opStore[0xDA] = JP
 	opStore[0xDC] = CALL
 	opStore[0xDE] = SBC
-	// opStore[0xDF] = RST
+	opStore[0xDF] = RST
 
 	opStore[0xE0] = LD
 	opStore[0xE2] = LD
 	opStore[0xE5] = PUSH
 	opStore[0xE6] = AND
-	// opStore[0xE7] = RST
+	opStore[0xE7] = RST
 	opStore[0xE8] = ADD
 	opStore[0xE9] = JP
 	opStore[0xEA] = LD
 	opStore[0xEE] = XOR
-	// opStore[0xEF] = RST
+	opStore[0xEF] = RST
 
 	opStore[0xF0] = LD
 	opStore[0xF2] = LD
-	// TODO: Find out what the IME flag is and how to use it.
-	// opStore[0xF3] = DI
+	opStore[0xF3] = DI
 	opStore[0xF5] = PUSH
 	opStore[0xF6] = OR
-	// opStore[0xF7] = RST
+	opStore[0xF7] = RST
 	opStore[0xF8] = LD
 	opStore[0xF9] = LD
 	opStore[0xFA] = LD
-	// opStore[0xFB] = EI
+	opStore[0xFB] = EI
 	opStore[0xFE] = CP
-	// opStore[0xFF] = RST
+	opStore[0xFF] = RST
 
 	return opStore
 }
