@@ -25,16 +25,16 @@ func (c *cp) Exec(op byte) {
 	if v, ok := c.regMap[op&0x0F]; ok {
 		c.cp_r8_u8(*c.c.GetRegister(v))
 	} else {
-		arg, err := c.c.Fetch()
-		if err != nil {
-			return
-		}
 
 		switch op {
 		case 0xBE:
 			HL := c.c.HL()
 			c.cp_r8_u8(*c.c.GetMem(HL))
 		case 0xFE:
+			arg, err := c.c.Fetch()
+			if err != nil {
+				return
+			}
 			c.cp_r8_u8(arg)
 		default:
 			panic("Invalid opcode for CP")

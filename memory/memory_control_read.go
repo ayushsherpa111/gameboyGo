@@ -12,7 +12,7 @@ func (m *memory) read_io(addr uint16) readMemFunc {
 }
 
 func (m *memory) read_boot_loader(addr uint16) readMemFunc {
-	if addr > 0xFF {
+	if addr >= 0xFF {
 		return nil
 	}
 	return func() *uint8 {

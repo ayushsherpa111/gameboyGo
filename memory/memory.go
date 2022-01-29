@@ -122,7 +122,6 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 		IE:         make([]uint8, 1),
 		cart:       cartridge.NewCart(romData),
 	}
-	fmt.Printf("Is BootLoader loaded : %v\n", mem.isBootLoaderLoaded())
 	mem.cart.HeaderInfo()
 	mem.ioRegs[LY_REG-IO_START] = 0x90
 

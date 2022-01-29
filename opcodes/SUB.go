@@ -26,7 +26,6 @@ func (s *sub) sub_r8_u8(val uint8) {
 	s._SUB(val, carry)
 }
 
-// TODO do the same for add
 func (s *sub) Exec(op byte) {
 	if v, ok := s.regMap[op&0x0F]; ok {
 		s.sub_r8_u8(*s.c.GetRegister(v))

@@ -155,7 +155,7 @@ func (c *CPU) SetHL(val uint16) {
 
 func hexVals(regs []uint8) string {
 	var reg_bin string
-	for i, v := range regs[:len(regs)-1] {
+	for i, v := range regs {
 		reg_bin += fmt.Sprintf("%s: 0x%04x ", GetRegName(uint8(i)), v)
 	}
 	return reg_bin
@@ -179,7 +179,6 @@ func (c *CPU) FetchDecodeExec(store [0x100]instructions.Instruction) error {
 
 	// TODO: send a signal to any listening EI, DI, RETI instructions thru a channel to set the IME flag if the previous instruction was EI/DI/RETI
 	// Figure out a way to send a signal thru the channel only if the previous instruction was one of the above.
-
 	return nil
 }
 

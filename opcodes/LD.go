@@ -218,7 +218,7 @@ func (i *ld) Exec(opcode byte) {
 		// LD (u16), A
 		i.u16_u8(i.c.Fetch16(), *A)
 	case 0xF0:
-		// LD (0xFF00+u8), A
+		// LD A, (0xFF00+u8)
 		arg, _ := i.c.Fetch()
 		val := 0xFF00 + uint16(arg) // 44
 		fmt.Printf("LOADING INTO A: 0x%x\n", val)
@@ -251,7 +251,7 @@ func (i *ld) Exec(opcode byte) {
 
 		// Not LD (HL)
 		if !(opcode >= 0x70 && opcode <= 0x77) {
-			// TODO map registers to numbers in the above order
+			// TODO: map registers to numbers in the above order
 			r1 := ld_tar(opcode)
 			if (opcode&0x0F)%8 != 0x06 {
 				r2 := ld_src(opcode)
