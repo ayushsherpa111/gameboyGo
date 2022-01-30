@@ -34,7 +34,7 @@ func (i *inc) inc_u16(addr uint16) {
 
 func (i *inc) Exec(op byte) {
 	switch op {
-	case 0x01:
+	case 0x03:
 		// INC BC
 		i.inc_r16(cpu.B, cpu.C, i.c.BC())
 	case 0x04:

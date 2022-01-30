@@ -1,7 +1,5 @@
 package memory
 
-import "fmt"
-
 type readMemFunc func() *uint8
 
 func (m *memory) read_io(addr uint16) readMemFunc {
@@ -12,9 +10,6 @@ func (m *memory) read_io(addr uint16) readMemFunc {
 }
 
 func (m *memory) read_boot_loader(addr uint16) readMemFunc {
-	if addr >= 0xFF {
-		return nil
-	}
 	return func() *uint8 {
 		return &m.bootloader[addr]
 	}
@@ -43,7 +38,7 @@ func (m *memory) read_ext_ram(addr uint16) readMemFunc {
 
 func (m *memory) read_wram(addr uint16) readMemFunc {
 	newAddr := mapwRAMIndex(addr)
-	fmt.Printf("New addr for WRAM: 0x%x\n", newAddr)
+	// fmt.Printf("New addr for WRAM: 0x%x\n", newAddr)
 	return func() *uint8 {
 		return &m.wRAM[newAddr]
 	}

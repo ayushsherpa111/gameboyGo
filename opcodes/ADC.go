@@ -13,7 +13,7 @@ func (a *ADC) add_r8_u8(u8 uint8) {
 
 	a.c.SET_NEG(false)
 	a.c.SET_HALF_CARRY((*A&0x0F)+(u8&0x0F)+carry > 0x0F)
-	a.c.SET_CARRY(uint16(*A)+uint16(u8&0x0F)+uint16(carry) > 0xFF)
+	a.c.SET_CARRY(uint16(*A)+uint16(u8)+uint16(carry) > 0xFF)
 
 	*A += u8 + carry
 	a.c.SET_ZERO(*A == 0x0)

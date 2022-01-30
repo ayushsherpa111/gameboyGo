@@ -10,6 +10,7 @@ type rr struct {
 // RRCA: Rotate A and use higher order bit as Carry
 // RRA: Rotate A and use carry flag
 
+// TODO: RRCA and RRC
 func (r *rr) _rr(reg *uint8, carry uint8) {
 
 	r.c.SET_NEG(false)

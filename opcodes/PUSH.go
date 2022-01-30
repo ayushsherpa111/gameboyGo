@@ -24,7 +24,7 @@ func (p *push) Exec(op byte) {
 		// PUSH BC
 		p.push_r16(p.c.HL())
 	case 0xF5:
-		// PUSH BC
+		// PUSH AF
 		p.push_r16(p.c.AF())
 	}
 }

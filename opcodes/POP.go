@@ -6,6 +6,12 @@ type pop struct {
 	c *cpu.CPU
 }
 
+func (p *pop) pop_af(r1, r2 *uint8) {
+	val := p.c.FetchSP()
+	*r2 = uint8(val) & 0xF0
+	*r1 = uint8(val >> 8)
+}
+
 func (p *pop) pop_r8(r1, r2 *uint8) {
 	val := p.c.FetchSP()
 	*r2 = uint8(val)
@@ -37,7 +43,7 @@ func (p *pop) Exec(op byte) {
 		p.pop_r8(H, L)
 	case 0xF1:
 		// POP AF
-		p.pop_r8(A, F)
+		p.pop_af(A, F)
 	}
 }
 

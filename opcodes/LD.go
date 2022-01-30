@@ -1,8 +1,6 @@
 package opcodes
 
 import (
-	"fmt"
-
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 )
 
@@ -40,7 +38,6 @@ func (i *ld) u16_SP(mem uint16) {
 // Load from memory into register
 func (i *ld) r8_u16(reg uint8, addr uint16) {
 	i.c.SetRegister(reg, *i.c.GetMem(addr))
-	fmt.Printf("VAL OF A : %x\n", *i.c.GetRegister(cpu.A))
 }
 
 // Load uint16 into Stack pointer
@@ -55,7 +52,6 @@ func (i *ld) r8_r8(to, from uint8) {
 func (i *ld) r16_sp_u8(highReg, lowReg uint8, val int8) {
 	i.c.SET_ZERO(false)
 	i.c.SET_NEG(false)
-
 }
 
 func ld_tar(opcode uint8) uint8 {
@@ -221,7 +217,6 @@ func (i *ld) Exec(opcode byte) {
 		// LD A, (0xFF00+u8)
 		arg, _ := i.c.Fetch()
 		val := 0xFF00 + uint16(arg) // 44
-		fmt.Printf("LOADING INTO A: 0x%x\n", val)
 		i.r8_u16(cpu.A, val)
 		return
 	case 0xF2:
@@ -239,7 +234,6 @@ func (i *ld) Exec(opcode byte) {
 
 	switch {
 	case opcode >= 0x40 && opcode <= 0x7f:
-		fmt.Printf("ENTERING HERE 0x%x 0x%x\n", i.c.PC, opcode)
 		// 0x40 - 0x47 = LD B
 		// 0x48 - 0x4F = LD C
 		// 0x50 - 0x57 = LD D
@@ -251,7 +245,6 @@ func (i *ld) Exec(opcode byte) {
 
 		// Not LD (HL)
 		if !(opcode >= 0x70 && opcode <= 0x77) {
-			// TODO: map registers to numbers in the above order
 			r1 := ld_tar(opcode)
 			if (opcode&0x0F)%8 != 0x06 {
 				r2 := ld_src(opcode)

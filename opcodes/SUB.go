@@ -1,6 +1,8 @@
 package opcodes
 
 import (
+	"fmt"
+
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 )
 
@@ -14,7 +16,7 @@ func (s *sub) _SUB(val uint8, carry uint8) {
 
 	s.c.SET_NEG(true)
 	s.c.SET_HALF_CARRY(*A&0x0F < val&0x0F+carry)
-	s.c.SET_HALF_CARRY(*A < val&0x0F+carry)
+	s.c.SET_CARRY(*A < val+carry)
 
 	*A -= (val + carry)
 	s.c.SET_ZERO(*A == 0x0)
@@ -34,8 +36,12 @@ func (s *sub) Exec(op byte) {
 		case 0x96:
 			// SUB A, (HL)
 			s.sub_r8_u8(*s.c.GetMem(s.c.HL()))
+		case 0xD6:
+			// SUB A. u8
+			arg, _ := s.c.Fetch()
+			s._SUB(arg, 0)
 		default:
-			panic("Failed to decode opcode in Sub")
+			panic(fmt.Sprintf("Failed to decode opcode in Sub 0x%02x", op))
 		}
 	}
 }

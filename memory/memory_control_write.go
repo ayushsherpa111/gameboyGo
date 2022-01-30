@@ -1,15 +1,12 @@
 package memory
 
-import (
-	"fmt"
-)
+import "fmt"
 
 type writeMemFunc func(uint8) error
 
 // TODO: handle using `interface.cart`. Placeholder for now.
 func (m *memory) write_rom(addr uint16) writeMemFunc {
 	return func(val uint8) error {
-		fmt.Printf("[ROM] Writing to Addr: 0x%04x Val: 0x%02x\n", addr, val)
 		return nil
 	}
 }
@@ -52,6 +49,9 @@ func (m *memory) write_io(addr uint16) writeMemFunc {
 	// fmt.Printf("Trying to write to address 0x%04x Not allowed\n", addr)
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
+		if newAddr == 0x1 {
+			fmt.Printf("%c ", u)
+		}
 		return nil
 	}
 }

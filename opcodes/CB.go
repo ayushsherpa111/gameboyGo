@@ -1,8 +1,6 @@
 package opcodes
 
 import (
-	"fmt"
-
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 )
@@ -14,7 +12,7 @@ type cb struct {
 
 func (c *cb) Exec(op byte) {
 	nextOP, _ := c.c.Fetch()
-	fmt.Printf("PC: 0x%x SUB CB: 0x%02x\n", c.c.PC, nextOP)
+	// fmt.Printf("PC: 0x%x SUB CB: 0x%02x\n", c.c.PC, nextOP)
 	c.subMap[nextOP].Exec(nextOP)
 }
 

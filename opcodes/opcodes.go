@@ -113,20 +113,34 @@ func NewOpcodeStore(cpu *cpu.CPU) [0x100]instructions.Instruction {
 
 	// 0x80 to 0xBF
 	for i := 0x80; i < 0xC0; i++ {
-		mask := i & 0x0F
-		if mask < 0x08 {
-			// ADD
-			opStore[i|0x80] = ADD
-			opStore[i|0x90] = SUB
-			opStore[i|0xA0] = AND
-			opStore[i|0xB0] = OR
-		}
-		if mask > 0x7 {
-			// ADC
-			opStore[i|0x80] = ADC
-			opStore[i|0x90] = SBC
-			opStore[i|0xA0] = XOR
-			opStore[i|0xB0] = CP
+		lower := i & 0x0F
+		upper := i & 0xF0
+		isLower := lower < 0x08
+		switch upper {
+		case 0x80:
+			if isLower {
+				opStore[i] = ADD
+			} else {
+				opStore[i] = ADC
+			}
+		case 0x90:
+			if isLower {
+				opStore[i] = SUB
+			} else {
+				opStore[i] = SBC
+			}
+		case 0xA0:
+			if isLower {
+				opStore[i] = AND
+			} else {
+				opStore[i] = XOR
+			}
+		case 0xB0:
+			if isLower {
+				opStore[i] = OR
+			} else {
+				opStore[i] = CP
+			}
 		}
 	}
 	opStore[0xC0] = RET

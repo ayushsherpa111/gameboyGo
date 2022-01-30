@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"flag"
 	"fmt"
 	"os"
 
@@ -14,7 +15,15 @@ import (
 var bootLoader []byte
 
 func main() {
-	ROM := os.Args[1]
+	var ROM string
+
+	flag.StringVar(&ROM, "r", "", "ROM file to execute")
+	flag.Parse()
+
+	if ROM == "" {
+		os.Exit(2)
+	}
+	// ROM := os.Args[1]
 	mem, err := memory.InitMem(bootLoader, ROM)
 
 	if err != nil {

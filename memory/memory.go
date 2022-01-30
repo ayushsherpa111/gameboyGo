@@ -146,7 +146,7 @@ func (m *memory) loadROM(romData []byte) error {
 }
 
 func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
-	if m.isBootLoaderLoaded() && addr < 0x100 {
+	if m.isBootLoaderLoaded() && addr < 0xff {
 		return m.read_boot_loader(addr)
 	} else if addr <= ROM_END {
 		return m.read_rom_data(addr)

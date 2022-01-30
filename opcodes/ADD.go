@@ -10,9 +10,11 @@ type add struct {
 
 func (a *add) _add(tar *uint8, src uint8) {
 	a.c.SET_NEG(false)
-	a.c.SET_HALF_CARRY((*tar & 0x0F) == 0x0F)
+	a.c.SET_HALF_CARRY((*tar&0x0F)+(src&0x0F) > 0x0F)
+	a.c.SET_CARRY(uint16(*tar)+uint16(src) > 0xFF)
 
 	*tar += src
+	a.c.SET_ZERO(*tar == 0x00)
 }
 
 func (a *add) add_r8_r8(r1, r2 uint8) {

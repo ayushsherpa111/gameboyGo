@@ -168,7 +168,7 @@ func (c *CPU) FetchDecodeExec(store [0x100]instructions.Instruction) error {
 		return err
 	}
 
-	fmt.Printf("PC: 0x%02x OP:0x%02x Registers: %s Flag: 0b%04b\n", c.PC-1, inst, hexVals(c.registers[:]), c.registers[F]>>4)
+	// fmt.Printf("PC: 0x%02x OP:0x%02x Registers: %s Flag: 0b%04b\n", c.PC-1, inst, hexVals(c.registers[:]), c.registers[F]>>4)
 	store[inst].Exec(inst)
 
 	// Once the PC is greater than the PC at DI/EI/RETI send signal to change the value of EI
@@ -177,8 +177,6 @@ func (c *CPU) FetchDecodeExec(store [0x100]instructions.Instruction) error {
 		c.NewIMEConf.changed = false
 	}
 
-	// TODO: send a signal to any listening EI, DI, RETI instructions thru a channel to set the IME flag if the previous instruction was EI/DI/RETI
-	// Figure out a way to send a signal thru the channel only if the previous instruction was one of the above.
 	return nil
 }
 
