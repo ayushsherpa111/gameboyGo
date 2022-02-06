@@ -28,14 +28,12 @@ func NewCB(c *cpu.CPU) *cb {
 	subMap := map[byte]interfaces.Instruction{}
 
 	var i uint8
-	for i = 0; i < 0xF; i++ {
+	for i = 0; i <= 0xF; i++ {
 		if i < 0x8 {
 			subMap[i] = RL
 			subMap[i|0x10] = RL
-
 			subMap[i|0x20] = SL
 			subMap[i|0x30] = SWAP
-
 		} else {
 			subMap[i] = RR
 			subMap[i|0x10] = RR

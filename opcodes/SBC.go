@@ -27,10 +27,6 @@ func (s *sbc) Exec(op byte) {
 	if v, ok := s.regMap[op&0x0F]; ok {
 		s.SUB_r8_u8(*s.c.GetRegister(v))
 	} else {
-		arg, err := s.c.Fetch()
-		if err != nil {
-			return
-		}
 		switch op {
 		case 0x9E:
 			// SBC A,(HL)
@@ -38,6 +34,10 @@ func (s *sbc) Exec(op byte) {
 			s.SUB_r8_u8(*s.c.GetMem(HL))
 		case 0xDE:
 			//  SBC A, u8
+			arg, err := s.c.Fetch()
+			if err != nil {
+				return
+			}
 			s.SUB_r8_u8(arg)
 		default:
 			panic("Invalid opcode for sbc")

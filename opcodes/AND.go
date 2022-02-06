@@ -24,10 +24,6 @@ func (a *and) Exec(op byte) {
 	if v, ok := a.regMap[op&0x0F]; ok {
 		a.AND_r8_u8(*a.c.GetRegister(v))
 	} else {
-		arg, err := a.c.Fetch()
-		if err != nil {
-			return
-		}
 		switch op {
 		case 0xA6:
 			// AND A, (HL)
@@ -35,6 +31,10 @@ func (a *and) Exec(op byte) {
 			a.AND_r8_u8(*a.c.GetMem(HL))
 		case 0xE6:
 			// AND A, u8
+			arg, err := a.c.Fetch()
+			if err != nil {
+				return
+			}
 			a.AND_r8_u8(arg)
 		default:
 			panic("Invalid opcode for AND")

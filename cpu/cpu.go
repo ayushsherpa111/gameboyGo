@@ -218,3 +218,7 @@ func (c *CPU) FetchSP() uint16 {
 	c.SP++
 	return u16
 }
+
+// [8]uint8 [2,12,0,2,0,0,1,0]
+
+// checksum ff80

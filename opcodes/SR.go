@@ -7,25 +7,25 @@ type sr struct {
 	regMap map[byte]uint8
 }
 
-func (s *sr) _sr(reg *uint8) {
-	s.c.SET_CARRY(*reg&0x01 != 0x0)
-
-	*reg >>= 1
+func (s *sr) _sra(reg *uint8) {
 	s.c.SET_NEG(false)
 	s.c.SET_HALF_CARRY(false)
+	s.c.SET_CARRY(*reg&0x01 == 0x01)
 
-}
-
-func (s *sr) _sra(reg *uint8) {
 	hb := *reg & 0x80
+	*reg >>= 1
 	*reg |= hb
 
-	s._sr(reg)
 	s.c.SET_ZERO(*reg == 0)
 }
 
 func (s *sr) _srl(reg *uint8) {
-	s._sr(reg)
+	s.c.SET_CARRY(*reg&0x01 == 0x01)
+
+	*reg >>= 1
+
+	s.c.SET_NEG(false)
+	s.c.SET_HALF_CARRY(false)
 	s.c.SET_ZERO(*reg == 0)
 }
 

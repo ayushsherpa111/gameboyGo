@@ -10,7 +10,7 @@ type inc struct {
 
 func (i *inc) _INC(val *uint8) {
 	i.c.SET_NEG(false)
-	i.c.SET_HALF_CARRY(*val&0xF+0x1 > 0x0F)
+	i.c.SET_HALF_CARRY(*val&0x0F == 0x0F)
 
 	(*val)++
 

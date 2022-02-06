@@ -10,7 +10,6 @@ type ld struct {
 
 // Load into a 16 bit register
 func (i *ld) r16_u16(r1, r2 uint8, val uint16) {
-
 	i.c.SetRegister(r1, uint8(val>>8))
 	i.c.SetRegister(r2, uint8(val))
 }
