@@ -176,7 +176,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0x100]instructions.Instruction {
 	opStore[0xD6] = SUB
 	opStore[0xD7] = RST
 	opStore[0xD8] = RET
-	// opStore[0xD9] = RETI
+	opStore[0xD9] = RET
 	opStore[0xDA] = JP
 	opStore[0xDC] = CALL
 	opStore[0xDE] = SBC

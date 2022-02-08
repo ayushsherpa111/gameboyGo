@@ -92,6 +92,7 @@ func (c *CPU) Fetch() (uint8, error) {
 	if b == nil {
 		return 0, errors.New("PC is pointing to an invalid address")
 	}
+	// fmt.Printf("PC : 0x%x SP: 0x%x OP : 0x%x\n", c.PC, c.SP, *b)
 	c.PC += 1
 	return *b, nil
 }

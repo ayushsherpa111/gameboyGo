@@ -10,7 +10,7 @@ type sl struct {
 func (s *sl) _sla(reg *uint8) {
 	s.c.SET_NEG(false)
 	s.c.SET_HALF_CARRY(false)
-	s.c.SET_CARRY(*reg&0x80 != 0x00)
+	s.c.SET_CARRY(*reg&0x80 == 0x80)
 	*reg <<= 1
 	s.c.SET_ZERO(*reg == 0)
 }

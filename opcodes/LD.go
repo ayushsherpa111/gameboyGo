@@ -253,7 +253,8 @@ func (i *ld) Exec(opcode byte) {
 			}
 		} else {
 			// LD (HL)
-			i.u16_u8(i.c.HL(), ld_src(opcode))
+			reg := i.c.GetRegister(ld_src(opcode))
+			i.u16_u8(i.c.HL(), *reg)
 		}
 	}
 }

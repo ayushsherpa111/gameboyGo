@@ -1,8 +1,6 @@
 package opcodes
 
 import (
-	"fmt"
-
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 )
 
@@ -34,7 +32,7 @@ func (d *daa) _daa() {
 }
 
 func (d *daa) Exec(op byte) {
-	fmt.Printf("PC : 0x%02x AF: 0x%04x \n", d.c.PC, d.c.AF())
+	// fmt.Printf("PC : 0x%02x AF: 0x%04x \n", d.c.PC, d.c.AF())
 	d._daa()
 }
 
