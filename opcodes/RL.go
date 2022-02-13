@@ -5,84 +5,63 @@ import (
 )
 
 type rl struct {
-	c      *cpu.CPU
-	regMap map[byte]uint8
+	c *cpu.CPU
 }
 
 // RLCA: Rotate A and use higher order bit as Carry
 // RLA: Rotate A and use carry flag
 
-func (r *rl) _rl(reg *uint8, carry uint8) {
-	r.c.SET_CARRY((*reg & 0x80) == 0x80)
-	r.c.SET_NEG(false)
-	r.c.SET_HALF_CARRY(false)
+func _rl(c *cpu.CPU, reg *uint8) {
+	cv := c.CarryVal()
+
+	var OF uint8 = (*reg & 0x80) >> 7
+	c.SET_CARRY(OF > 0x00)
+	c.SET_NEG(false)
+	c.SET_HALF_CARRY(false)
 
 	*reg <<= 1
-	*reg |= carry
+	*reg |= cv
 
-	r.c.SET_ZERO(*reg == 0x0)
+	c.SET_ZERO(*reg == 0x0)
 }
 
-func (r *rl) _rlc(reg *uint8) {
-	OF := *reg & 0x80
-	r.c.SET_CARRY(OF > 0x0)
+func _rlc(c *cpu.CPU, reg *uint8) {
+	c.SET_NEG(false)
+	c.SET_HALF_CARRY(false)
+	OF := (*reg & 0x80) >> 7
+	c.SET_CARRY(OF > 0x0)
+
 	*reg <<= 1
 	*reg |= OF
 
-	r.c.SET_ZERO(*reg == 0x0)
-	r.c.SET_NEG(false)
-	r.c.SET_HALF_CARRY(false)
+	c.SET_ZERO(*reg == 0x0)
 }
 
-func (r *rl) _rla(carry uint8) {
+func (r *rl) _rla() {
 	A := r.c.GetRegister(cpu.A)
-	r._rl(A, carry)
+	_rl(r.c, A)
 
 	r.c.SET_ZERO(false)
 }
 
 func (r *rl) _rlca() {
 	A := r.c.GetRegister(cpu.A)
-	r._rlc(A)
+	_rlc(r.c, A)
 
 	r.c.SET_ZERO(false)
 }
 
 func (r *rl) Exec(op byte) {
-	carry := r.c.CarryVal()
-	var reg *uint8
-	if op&0x0F != 0x06 {
-		reg = r.c.GetRegister(r.regMap[op&0x0F])
-	} else {
-		reg = r.c.GetMem(r.c.HL())
-	}
-
-	if op&0xF0 == 0x00 {
-		if op == 0x07 {
-			r._rlca()
-		} else {
-			r._rlc(reg)
-		}
-	} else {
-		if op == 0x17 {
-			r._rla(carry)
-		} else {
-			r._rl(reg, carry)
-		}
+	switch op {
+	case 0x07:
+		r._rlca()
+	case 0x17:
+		r._rla()
 	}
 }
 
 func NewRl(c *cpu.CPU) *rl {
 	return &rl{
 		c,
-		map[byte]uint8{
-			0x0: cpu.B,
-			0x1: cpu.C,
-			0x2: cpu.D,
-			0x3: cpu.E,
-			0x4: cpu.H,
-			0x5: cpu.L,
-			0x7: cpu.A,
-		},
 	}
 }

@@ -106,6 +106,7 @@ func ld_src(opcode uint8) uint8 {
 
 func (i *ld) LD_HL_SPi8() {
 	i8, _ := i.c.Fetch()
+
 	i.c.SET_ZERO(false)
 	i.c.SET_NEG(false)
 
@@ -119,11 +120,6 @@ func (i *ld) LD_HL_SPi8() {
 }
 
 func (i *ld) Exec(opcode byte) {
-	// TODO: this breaks fetch16. Moves PC +1 and +2 when calling Fetch16 again
-	// arg, e := i.c.Fetch()
-	// if e != nil {
-	// 	return
-	// }
 	A := i.c.GetRegister(cpu.A)
 	C := i.c.GetRegister(cpu.C)
 	HL := i.c.HL()

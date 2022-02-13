@@ -11,21 +11,21 @@ type sub struct {
 	regMap map[byte]uint8
 }
 
-func (s *sub) _SUB(val uint8, carry uint8) {
+func (s *sub) _SUB(val uint8) {
 	A := s.c.GetRegister(cpu.A)
 
 	s.c.SET_NEG(true)
-	s.c.SET_HALF_CARRY(*A&0x0F < val&0x0F+carry)
-	s.c.SET_CARRY(*A < val+carry)
+	s.c.SET_HALF_CARRY(*A&0x0F < val&0x0F)
+	s.c.SET_CARRY(*A < val)
 
-	*A -= (val + carry)
+	*A -= val
 	s.c.SET_ZERO(*A == 0x0)
 }
 
 func (s *sub) sub_r8_u8(val uint8) {
-	var carry uint8 = s.c.CarryVal()
+	// var carry uint8 = s.c.CarryVal()
 
-	s._SUB(val, carry)
+	s._SUB(val)
 }
 
 func (s *sub) Exec(op byte) {
@@ -39,7 +39,7 @@ func (s *sub) Exec(op byte) {
 		case 0xD6:
 			// SUB A. u8
 			arg, _ := s.c.Fetch()
-			s._SUB(arg, 0)
+			s._SUB(arg)
 		default:
 			panic(fmt.Sprintf("Failed to decode opcode in Sub 0x%02x", op))
 		}

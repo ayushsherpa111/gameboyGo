@@ -15,7 +15,7 @@ func (s *sbc) SUB_r8_u8(val uint8) {
 	var carry uint8 = s.c.CarryVal()
 	A := s.c.GetRegister(cpu.A)
 
-	s.c.SET_HALF_CARRY(*A&0x0F < (carry&0x0F)+val)
+	s.c.SET_HALF_CARRY(*A&0x0F < (val&0x0F)+carry)
 	s.c.SET_CARRY(uint16(*A) < uint16(carry)+uint16(val))
 
 	*A -= (carry + val)

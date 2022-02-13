@@ -211,3 +211,5 @@ func (m *memory) MemWrite(addr uint16, val uint8) error {
 	}
 	return mem(val)
 }
+
+// df6d

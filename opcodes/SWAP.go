@@ -12,11 +12,8 @@ func (s *swap) _swp(val *uint8) {
 	s.c.SET_HALF_CARRY(false)
 	s.c.SET_CARRY(false)
 
-	ln := *val & 0x0F
-	*val <<= 4
-	*val |= ln
-
 	s.c.SET_ZERO(*val == 0x0)
+	*val = (*val << 4) | (*val >> 4)
 }
 
 func (s *swap) Exec(op byte) {

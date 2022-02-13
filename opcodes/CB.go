@@ -17,8 +17,8 @@ func (c *cb) Exec(op byte) {
 }
 
 func NewCB(c *cpu.CPU) *cb {
-	RL := NewRl(c)
-	RR := NewRR(c)
+	RL := NewCBRl(c)
+	RR := NewCBRR(c)
 	SL := NewSL(c)
 	SR := NewSR(c)
 	SWAP := NewSwap(c)
@@ -29,7 +29,7 @@ func NewCB(c *cpu.CPU) *cb {
 
 	var i uint8
 	for i = 0; i <= 0xF; i++ {
-		if i < 0x8 {
+		if i <= 0x7 {
 			subMap[i] = RL
 			subMap[i|0x10] = RL
 			subMap[i|0x20] = SL
@@ -41,6 +41,7 @@ func NewCB(c *cpu.CPU) *cb {
 			subMap[i|0x20] = SR
 			subMap[i|0x30] = SR
 		}
+
 		subMap[i|0x40] = BIT
 		subMap[i|0x50] = BIT
 		subMap[i|0x60] = BIT

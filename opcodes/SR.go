@@ -36,6 +36,7 @@ func (s *sr) Exec(op byte) {
 	} else {
 		reg = s.c.GetMem(s.c.HL())
 	}
+
 	if op&0xF0 == 0x20 {
 		s._sra(reg)
 	} else {
@@ -43,8 +44,8 @@ func (s *sr) Exec(op byte) {
 	}
 }
 
-func NewSR(c *cpu.CPU) *sl {
-	return &sl{
+func NewSR(c *cpu.CPU) *sr {
+	return &sr{
 		c: c,
 		regMap: map[byte]uint8{
 			0x8: cpu.B,

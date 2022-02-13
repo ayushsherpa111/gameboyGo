@@ -31,9 +31,9 @@ func (a *add) add_u16_u16(r1, r2 uint8, src uint16) {
 	val1, val2 := a.c.GetRegister(r1), a.c.GetRegister(r2)
 	r16 := uint16(*val1)<<8 | uint16(*val2)
 	a.c.SET_HALF_CARRY((r16&0x0FFF)+(src&0x0FFF) > 0x0FFF)
+	a.c.SET_CARRY(uint32(r16)+uint32(src) > 0xFFFF)
 
 	sum := r16 + src
-	a.c.SET_CARRY(uint32(r16)+uint32(src) > 0xFFFF)
 
 	a.c.SetRegister(r1, uint8(sum>>8))
 	a.c.SetRegister(r2, uint8(sum))
@@ -45,7 +45,7 @@ func (a *add) add_SP_i8() {
 	a.c.SET_NEG(false)
 
 	a.c.SET_HALF_CARRY(int32(a.c.SP)&0x0FFF+int32(i8)&0x0FFF > 0x0FFF)
-	a.c.SET_CARRY(int32(a.c.SP)&0xFFFF+int32(i8)&0xFFFF > 0xFFFF)
+	a.c.SET_CARRY(int16(a.c.SP)+int16(i8) > 0xFF)
 
 	sum := uint16(int16(a.c.SP) + int16(i8))
 	a.c.SP = sum
