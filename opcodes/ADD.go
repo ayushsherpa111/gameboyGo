@@ -40,15 +40,14 @@ func (a *add) add_u16_u16(r1, r2 uint8, src uint16) {
 }
 
 func (a *add) add_SP_i8() {
-	var i8 int8 = int8(a.c.SP)
+	u8, _ := a.c.Fetch()
 	a.c.SET_ZERO(false)
 	a.c.SET_NEG(false)
 
-	a.c.SET_HALF_CARRY(int32(a.c.SP)&0x0FFF+int32(i8)&0x0FFF > 0x0FFF)
-	a.c.SET_CARRY(int16(a.c.SP)+int16(i8) > 0xFF)
+	a.c.SET_HALF_CARRY(a.c.SP&0x0F+uint16(u8)&0x0F > 0x0F)
+	a.c.SET_CARRY(a.c.SP&0xFF+uint16(u8) > 0xFF)
 
-	sum := uint16(int16(a.c.SP) + int16(i8))
-	a.c.SP = sum
+	a.c.SP = uint16(int16(a.c.SP) + int16(int8(u8)))
 }
 
 func (a *add) Exec(op byte) {

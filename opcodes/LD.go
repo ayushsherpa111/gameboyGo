@@ -105,18 +105,24 @@ func ld_src(opcode uint8) uint8 {
 }
 
 func (i *ld) LD_HL_SPi8() {
-	i8, _ := i.c.Fetch()
+	u8, _ := i.c.Fetch()
+	v1 := int32(int8(u8))
+	v2 := int32(i.c.SP)
+	sum := int32(v2 + v1)
 
 	i.c.SET_ZERO(false)
 	i.c.SET_NEG(false)
 
-	i.c.SET_HALF_CARRY((uint8(i.c.SP)&0x0F)+(i8&0x0F) > 0x0F)
-	i.c.SET_CARRY(uint16(uint8(i.c.SP)+i8) > 0xFF)
+	// i.c.SET_HALF_CARRY((uint8(i.c.SP)&0x0F)+(u8&0x0F) > 0x0F)
+	// i.c.SET_CARRY(int16(i.c.SP)&0xFF+int16(u8)&0xFF > 0xFF)
 
-	sum := int16(i.c.SP) + int16(i8)
+	tVal := int32(i.c.SP) ^ v1 ^ sum
 
-	i.c.SetRegister(cpu.H, uint8(sum>>8))
-	i.c.SetRegister(cpu.L, uint8(sum))
+	i.c.SET_HALF_CARRY((tVal & 0x10) == 0x10)
+	i.c.SET_CARRY((tVal & 0x100) == 0x100)
+
+	i.c.SetRegister(cpu.H, uint8(uint16(sum)>>8))
+	i.c.SetRegister(cpu.L, uint8(uint16(sum)))
 }
 
 func (i *ld) Exec(opcode byte) {

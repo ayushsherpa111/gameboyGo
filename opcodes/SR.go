@@ -31,7 +31,7 @@ func (s *sr) _srl(reg *uint8) {
 
 func (s *sr) Exec(op byte) {
 	var reg *uint8
-	if op&0x0F != 0x06 {
+	if op&0x0F != 0x0E {
 		reg = s.c.GetRegister(s.regMap[op&0x0F])
 	} else {
 		reg = s.c.GetMem(s.c.HL())
