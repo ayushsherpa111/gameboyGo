@@ -88,6 +88,9 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 }
 
 func (c *CPU) Fetch() (uint8, error) {
+	if c.PC >= 0x100 {
+		c.memory.UnloadBootloader()
+	}
 	b := c.memory.MemRead(c.PC)
 	if b == nil {
 		return 0, errors.New("PC is pointing to an invalid address")
@@ -169,7 +172,9 @@ func (c *CPU) FetchDecodeExec(store [0x100]instructions.Instruction) error {
 		return err
 	}
 
-	// fmt.Printf("PC: 0x%02x OP:0x%02x Registers: %s Flag: 0b%04b\n", c.PC-1, inst, hexVals(c.registers[:]), c.registers[F]>>4)
+	// fmt.Printf("A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: %04X \n",
+	// 	c.registers[A], c.registers[F], c.registers[B], c.registers[C], c.registers[D], c.registers[E], c.registers[H], c.registers[L], c.SP, c.PC-1)
+
 	store[inst].Exec(inst)
 
 	// Once the PC is greater than the PC at DI/EI/RETI send signal to change the value of EI

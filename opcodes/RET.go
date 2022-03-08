@@ -34,9 +34,8 @@ func (r *ret) Exec(op byte) {
 		// RET
 		r.RET_COND(true)
 	case 0xD9:
-		// TODO: figure out scheduling events
 		r.RET_COND(true)
-		r.c.NewIMEConf = cpu.NewImePayload(r.c.PC+1, false)
+		r.c.NewIMEConf = cpu.NewImePayload(r.c.PC+1, true)
 	default:
 		panic("Invalid opcode for RET")
 	}

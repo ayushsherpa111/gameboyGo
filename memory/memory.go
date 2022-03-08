@@ -12,6 +12,7 @@ import (
 type Mem interface {
 	MemRead(addr uint16) *uint8
 	MemWrite(addr uint16, val uint8) error
+	UnloadBootloader()
 }
 
 const (
@@ -71,8 +72,9 @@ func mapwRAMIndex(addr uint16) uint16 {
 // 0xFFFF - 0xFFFF : Interrupt Enable Flag
 
 type memory struct {
-	bootloader []uint8
-	rom        string
+	bootloader         []uint8
+	rom                string
+	isBootLoaderLoaded bool
 
 	romData []uint8 // 0x0000 - 0x8000
 	vRAM    []uint8 // 0x8000 - 0x9FFF
@@ -86,16 +88,17 @@ type memory struct {
 	cart interfaces.Cart
 }
 
+func (m *memory) UnloadBootloader() {
+	if !m.isBootLoaderLoaded {
+		// fmt.Println("Bootloader has already been unloaded")
+		return
+	}
+	m.isBootLoaderLoaded = false
+}
+
 func (m *memory) ReadIO(addr uint16) uint8 {
 	addr -= uint16(IO_START)
 	return m.ioRegs[addr]
-}
-
-func (m *memory) isBootLoaderLoaded() bool {
-	if m.ReadIO(BOOT_LOADER_FLAG) == 0 {
-		return true
-	}
-	return false
 }
 
 func InitMem(bootLoader []byte, ROM string) (*memory, error) {
@@ -110,17 +113,18 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 	}
 
 	mem := &memory{
-		vRAM:       make([]uint8, 8*1024),
-		eRAM:       make([]uint8, 8*1024),
-		wRAM:       make([]uint8, 8*1024),
-		hRAM:       make([]uint8, 126),
-		romData:    make([]uint8, 32*1024),
-		ioRegs:     make([]uint8, 128),
-		OAM:        make([]uint8, 159),
-		bootloader: bootLoader,
-		rom:        ROM,
-		IE:         make([]uint8, 1),
-		cart:       cartridge.NewCart(romData),
+		isBootLoaderLoaded: true,
+		vRAM:               make([]uint8, 8*1024),
+		eRAM:               make([]uint8, 8*1024),
+		wRAM:               make([]uint8, 8*1024),
+		hRAM:               make([]uint8, 126),
+		romData:            make([]uint8, 32*1024),
+		ioRegs:             make([]uint8, 128),
+		OAM:                make([]uint8, 159),
+		bootloader:         bootLoader,
+		rom:                ROM,
+		IE:                 make([]uint8, 1),
+		cart:               cartridge.NewCart(romData),
 	}
 	mem.cart.HeaderInfo()
 	mem.ioRegs[LY_REG-IO_START] = 0x90
@@ -146,7 +150,7 @@ func (m *memory) loadROM(romData []byte) error {
 }
 
 func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
-	if m.isBootLoaderLoaded() && addr < 0xff {
+	if m.isBootLoaderLoaded && addr <= 0xff {
 		return m.read_boot_loader(addr)
 	} else if addr <= ROM_END {
 		return m.read_rom_data(addr)
@@ -194,7 +198,6 @@ func (m *memory) getWriteMemBlock(addr uint16) writeMemFunc {
 }
 
 func (m *memory) MemRead(addr uint16) *uint8 {
-	// fmt.Printf("Reading from 0x%04x\n", addr)
 	mem := m.getReadMemBlock(addr)
 	if mem == nil {
 		// handle error
