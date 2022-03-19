@@ -34,6 +34,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0x100]instructions.Instruction {
 	RST := NewRST(cpu)
 	DI := NewDI(cpu)
 	EI := NewEI(cpu)
+	HALT := NewHalt()
 	CCF := NewCCF(cpu)
 
 	opStore := [0x100]instructions.Instruction{
@@ -106,7 +107,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0x100]instructions.Instruction {
 	// 0x40 to 0x7F
 	for i := 0x40; i < 0x80; i++ {
 		if i == 0x76 {
-			continue
+			opStore[i] = HALT
 		}
 		opStore[i] = LD
 	}

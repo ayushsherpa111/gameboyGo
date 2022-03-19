@@ -5,8 +5,13 @@ import (
 	"fmt"
 	"log"
 
-	instructions "github.com/ayushsherpa111/gameboyEMU/interfaces"
+	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
+	"github.com/veandco/go-sdl2/sdl"
+)
+
+const (
+	V_BLANK uint8 = 1 << iota
 )
 
 type CPU struct {
@@ -14,22 +19,28 @@ type CPU struct {
 	PC         uint16
 	SP         uint16
 	memory     memory.Mem
-	store      []instructions.Instruction
+	store      []interfaces.Instruction
 	ime        bool
 	ImeChan    chan ImePayload
 	NewIMEConf ImePayload
 	CloseChan  chan struct{}
+	bufferChan chan<- []uint8
+	inputChan  <-chan sdl.Event
+	cycleCount uint64
 }
 
-func NewCPU(mem memory.Mem) *CPU {
+func NewCPU(mem memory.Mem, bufferChan chan<- []uint8, inputChan <-chan sdl.Event) *CPU {
 	return &CPU{
-		registers: [8]uint8{},
-		PC:        0x000,
-		SP:        0xFFFE,
-		memory:    mem,
-		ime:       false,
-		ImeChan:   make(chan ImePayload),
-		CloseChan: make(chan struct{}),
+		registers:  [8]uint8{},
+		PC:         0x000,
+		SP:         0xFFFE,
+		memory:     mem,
+		ime:        false,
+		ImeChan:    make(chan ImePayload),
+		CloseChan:  make(chan struct{}),
+		bufferChan: bufferChan,
+		inputChan:  inputChan,
+		cycleCount: 0,
 	}
 }
 
@@ -87,15 +98,24 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 	return &c.registers[reg]
 }
 
+func (c *CPU) tick() {
+	c.cycleCount++
+
+	// INFO: Tick PPU 4 times. [1 T cycle]
+	c.memory.TickAllComponents(c.cycleCount)
+}
+
 func (c *CPU) Fetch() (uint8, error) {
 	if c.PC >= 0x100 {
 		c.memory.UnloadBootloader()
 	}
 	b := c.memory.MemRead(c.PC)
+	c.tick()
+
 	if b == nil {
 		return 0, errors.New("PC is pointing to an invalid address")
 	}
-	// fmt.Printf("PC : 0x%x SP: 0x%x OP : 0x%x\n", c.PC, c.SP, *b)
+
 	c.PC += 1
 	return *b, nil
 }
@@ -110,6 +130,7 @@ func (c *CPU) SetMem(addr uint16, val uint8) {
 	if e := c.memory.MemWrite(addr, val); e != nil {
 		log.Fatalf("Error setting byte in memory.")
 	}
+	c.tick()
 }
 
 func (c *CPU) GetMem(addr uint16) *uint8 {
@@ -165,7 +186,7 @@ func hexVals(regs []uint8) string {
 	return reg_bin
 }
 
-func (c *CPU) FetchDecodeExec(store [0x100]instructions.Instruction) error {
+func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 	// FETCH instruction
 	inst, err := c.Fetch()
 	if err != nil {
@@ -182,6 +203,9 @@ func (c *CPU) FetchDecodeExec(store [0x100]instructions.Instruction) error {
 		c.ImeChan <- c.NewIMEConf
 		c.NewIMEConf.changed = false
 	}
+
+	// handle interrupt at the end of each cycle
+	// c.handleInterrupt()
 
 	return nil
 }
@@ -225,6 +249,12 @@ func (c *CPU) FetchSP() uint16 {
 	return u16
 }
 
-// [8]uint8 [2,12,0,2,0,0,1,0]
+func (c *CPU) handleInterrupt() {
+	if !c.ime {
+		return
+	}
+	IE, IF := *c.memory.MemRead(memory.INTERRUPT_ENABLE), *c.memory.MemRead(memory.INTERRUPT_FLAG)
+	if IE&IF == V_BLANK {
 
-// checksum ff80
+	}
+}

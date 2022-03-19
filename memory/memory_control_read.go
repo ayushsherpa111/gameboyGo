@@ -24,7 +24,7 @@ func (m *memory) read_rom_data(addr uint16) readMemFunc {
 func (m *memory) read_vram_data(addr uint16) readMemFunc {
 	newAddr := addr - VRAM_START
 	return func() *uint8 {
-		return &m.vRAM[newAddr]
+		return m.gpu.Read_VRAM(newAddr)
 	}
 }
 
@@ -38,7 +38,6 @@ func (m *memory) read_ext_ram(addr uint16) readMemFunc {
 
 func (m *memory) read_wram(addr uint16) readMemFunc {
 	newAddr := mapwRAMIndex(addr)
-	// fmt.Printf("New addr for WRAM: 0x%x\n", newAddr)
 	return func() *uint8 {
 		return &m.wRAM[newAddr]
 	}
@@ -47,7 +46,7 @@ func (m *memory) read_wram(addr uint16) readMemFunc {
 func (m *memory) read_oam(addr uint16) readMemFunc {
 	newAddr := addr - OAM_START
 	return func() *uint8 {
-		return &m.OAM[newAddr]
+		return m.gpu.Read_OAM(newAddr)
 	}
 }
 
@@ -61,5 +60,11 @@ func (m *memory) read_hram(addr uint16) readMemFunc {
 func (m *memory) read_IE() readMemFunc {
 	return func() *uint8 {
 		return &m.IE[0]
+	}
+}
+
+func (m *memory) read_IF() readMemFunc {
+	return func() *uint8 {
+		return &m.IF[0]
 	}
 }

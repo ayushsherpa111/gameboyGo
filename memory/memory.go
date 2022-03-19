@@ -2,17 +2,19 @@ package memory
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/ayushsherpa111/gameboyEMU/cartridge"
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
+	"github.com/ayushsherpa111/gameboyEMU/logger"
 )
 
 type Mem interface {
 	MemRead(addr uint16) *uint8
 	MemWrite(addr uint16, val uint8) error
 	UnloadBootloader()
+	TickAllComponents(uint64)
 }
 
 const (
@@ -43,7 +45,13 @@ const (
 	BOOT_LOADER_FLAG = 0xFF50
 	LY_REG           = 0xFF44
 
+	INTERRUPT_FLAG   = 0xFF0F
 	INTERRUPT_ENABLE = 0xFFFF
+
+	WIN_Y = 0xFF4A
+	WIN_X = 0xFF4B
+
+	LCDC = 0xFF40
 )
 
 func mapwRAMIndex(addr uint16) uint16 {
@@ -77,20 +85,20 @@ type memory struct {
 	isBootLoaderLoaded bool
 
 	romData []uint8 // 0x0000 - 0x8000
-	vRAM    []uint8 // 0x8000 - 0x9FFF
 	eRAM    []uint8 // 0xA000 - 0xBFFF
 	wRAM    []uint8 // 0xC000 - 0xDFFF
 	hRAM    []uint8 // 0xFF80 - 0xFFFE
 	ioRegs  []uint8 // 0xFF00 - 0xFF70
-	OAM     []uint8 // 0xFE00 - 0xFE9F
+	IF      []uint8 // 0xFF0F
 	IE      []uint8 // 0xFFFF
-
-	cart interfaces.Cart
+	lgr     logger.Logger
+	cart    interfaces.Cart
+	gpu     interfaces.GPU
 }
 
 func (m *memory) UnloadBootloader() {
 	if !m.isBootLoaderLoaded {
-		// fmt.Println("Bootloader has already been unloaded")
+		// m.lgr.Println("Bootloader has already been unloaded")
 		return
 	}
 	m.isBootLoaderLoaded = false
@@ -101,8 +109,7 @@ func (m *memory) ReadIO(addr uint16) uint8 {
 	return m.ioRegs[addr]
 }
 
-func InitMem(bootLoader []byte, ROM string) (*memory, error) {
-	fmt.Println(len(bootLoader))
+func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*memory, error) {
 	if len(bootLoader) != 256 {
 		return nil, errors.New("Invalid Bootloader provided")
 	}
@@ -114,17 +121,17 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 
 	mem := &memory{
 		isBootLoaderLoaded: true,
-		vRAM:               make([]uint8, 8*1024),
 		eRAM:               make([]uint8, 8*1024),
 		wRAM:               make([]uint8, 8*1024),
 		hRAM:               make([]uint8, 126),
 		romData:            make([]uint8, 32*1024),
 		ioRegs:             make([]uint8, 128),
-		OAM:                make([]uint8, 159),
 		bootloader:         bootLoader,
 		rom:                ROM,
+		IF:                 make([]uint8, 1),
 		IE:                 make([]uint8, 1),
 		cart:               cartridge.NewCart(romData),
+		lgr:                logger.NewLogger(os.Stdout, debug, "Memory"),
 	}
 	mem.cart.HeaderInfo()
 	mem.ioRegs[LY_REG-IO_START] = 0x90
@@ -137,7 +144,7 @@ func InitMem(bootLoader []byte, ROM string) (*memory, error) {
 }
 
 func (m *memory) loadROM(romData []byte) error {
-	fmt.Println("Loading ROM file...")
+	m.lgr.Infof("Loading ROM file...\n")
 
 	if len(romData) > (32 << 10) {
 		return errors.New("Invalid ROM length")
@@ -145,7 +152,7 @@ func (m *memory) loadROM(romData []byte) error {
 
 	copy(m.romData, romData)
 
-	fmt.Println("ROM file Succesfully loaded.")
+	m.lgr.Infof("ROM file Succesfully loaded.\n")
 	return nil
 }
 
@@ -168,6 +175,8 @@ func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
 		return m.read_io(addr)
 	} else if addr <= HRAM_END {
 		return m.read_hram(addr)
+	} else if addr == INTERRUPT_FLAG {
+		return m.read_IF()
 	} else if addr == INTERRUPT_ENABLE {
 		return m.read_IE()
 	}
@@ -191,8 +200,10 @@ func (m *memory) getWriteMemBlock(addr uint16) writeMemFunc {
 		return m.write_io(addr)
 	} else if addr <= HRAM_END {
 		return m.write_hram(addr)
+	} else if addr == INTERRUPT_FLAG {
+		return m.write_IF(addr)
 	} else if addr == INTERRUPT_ENABLE {
-		return m.write_ie(addr)
+		return m.write_IE(addr)
 	}
 	return nil
 }
@@ -207,7 +218,7 @@ func (m *memory) MemRead(addr uint16) *uint8 {
 }
 
 func (m *memory) MemWrite(addr uint16, val uint8) error {
-	// fmt.Printf("Writing to: 0x%04x\n", addr)
+	// m.lgr.Printf("Writing to: 0x%04x\n", addr)
 	mem := m.getWriteMemBlock(addr)
 	if mem == nil {
 		return errors.New("End of memory reached")
@@ -215,4 +226,8 @@ func (m *memory) MemWrite(addr uint16, val uint8) error {
 	return mem(val)
 }
 
-// df6d
+func (m *memory) TickAllComponents(cycleCount uint64) {
+	for i := 0; i < 4; i++ {
+
+	}
+}
