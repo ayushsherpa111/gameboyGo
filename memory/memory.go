@@ -17,6 +17,20 @@ type Mem interface {
 	TickAllComponents(uint64)
 }
 
+var (
+	PPU_REGS = map[uint16]struct{}{
+		0xFF40: {},
+		0xFF41: {},
+		0xFF42: {},
+		0xFF43: {},
+		0xFF44: {},
+		0xFF45: {},
+		0xFF47: {},
+		0xFF4A: {},
+		0xFF4B: {},
+	}
+)
+
 const (
 	ROM_END = 0x7FFF
 
@@ -47,11 +61,6 @@ const (
 
 	INTERRUPT_FLAG   = 0xFF0F
 	INTERRUPT_ENABLE = 0xFFFF
-
-	WIN_Y = 0xFF4A
-	WIN_X = 0xFF4B
-
-	LCDC = 0xFF40
 )
 
 func mapwRAMIndex(addr uint16) uint16 {
@@ -101,6 +110,7 @@ func (m *memory) UnloadBootloader() {
 		// m.lgr.Println("Bootloader has already been unloaded")
 		return
 	}
+	m.gpu.PrintDetails()
 	m.isBootLoaderLoaded = false
 }
 
@@ -132,6 +142,7 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*me
 		IE:                 make([]uint8, 1),
 		cart:               cartridge.NewCart(romData),
 		lgr:                logger.NewLogger(os.Stdout, debug, "Memory"),
+		gpu:                gpu,
 	}
 	mem.cart.HeaderInfo()
 	mem.ioRegs[LY_REG-IO_START] = 0x90
@@ -228,6 +239,6 @@ func (m *memory) MemWrite(addr uint16, val uint8) error {
 
 func (m *memory) TickAllComponents(cycleCount uint64) {
 	for i := 0; i < 4; i++ {
-
+		m.gpu.UpdateGPU()
 	}
 }

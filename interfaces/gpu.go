@@ -6,4 +6,7 @@ type GPU interface {
 	Write_VRAM(uint16, uint8)
 	Read_OAM(addr uint16) *uint8
 	Write_OAM(uint16, uint8)
+	Read_Regs(uint16) *uint8
+	Write_Regs(uint16, uint8) error
+	PrintDetails()
 }

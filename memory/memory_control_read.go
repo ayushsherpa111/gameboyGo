@@ -3,6 +3,12 @@ package memory
 type readMemFunc func() *uint8
 
 func (m *memory) read_io(addr uint16) readMemFunc {
+	if _, ok := PPU_REGS[addr]; ok {
+		return func() *uint8 {
+			return m.gpu.Read_Regs(addr)
+		}
+	}
+
 	newAddr := addr - IO_START
 	return func() *uint8 {
 		return &m.ioRegs[newAddr]

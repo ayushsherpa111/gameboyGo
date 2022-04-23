@@ -35,7 +35,7 @@ func main() {
 		os.Exit(2)
 	}
 	inputChan := make(chan sdl.Event)
-	bufferChan := make(chan []uint8)
+	bufferChan := make(chan []uint32)
 
 	ppu := ppu.NewPPU()
 	mem, err := memory.InitMem(bootLoader, ROM, debug, ppu)

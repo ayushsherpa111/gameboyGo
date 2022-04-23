@@ -45,8 +45,13 @@ func (m *memory) write_oam(addr uint16) writeMemFunc {
 }
 
 func (m *memory) write_io(addr uint16) writeMemFunc {
+	if _, ok := PPU_REGS[addr]; ok {
+		return func(val uint8) error {
+			return m.gpu.Write_Regs(addr, val)
+		}
+	}
+
 	newAddr := addr - IO_START
-	// fmt.Printf("Trying to write to address 0x%04x Not allowed\n", addr)
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
 		if newAddr == 0x1 {

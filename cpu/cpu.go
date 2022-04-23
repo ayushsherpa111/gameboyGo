@@ -24,12 +24,12 @@ type CPU struct {
 	ImeChan    chan ImePayload
 	NewIMEConf ImePayload
 	CloseChan  chan struct{}
-	bufferChan chan<- []uint8
+	bufferChan chan<- []uint32
 	inputChan  <-chan sdl.Event
 	cycleCount uint64
 }
 
-func NewCPU(mem memory.Mem, bufferChan chan<- []uint8, inputChan <-chan sdl.Event) *CPU {
+func NewCPU(mem memory.Mem, bufferChan chan<- []uint32, inputChan <-chan sdl.Event) *CPU {
 	return &CPU{
 		registers:  [8]uint8{},
 		PC:         0x000,
