@@ -24,12 +24,11 @@ type CPU struct {
 	ImeChan    chan ImePayload
 	NewIMEConf ImePayload
 	CloseChan  chan struct{}
-	bufferChan chan<- []uint32
 	inputChan  <-chan sdl.Event
 	cycleCount uint64
 }
 
-func NewCPU(mem memory.Mem, bufferChan chan<- []uint32, inputChan <-chan sdl.Event) *CPU {
+func NewCPU(mem memory.Mem, inputChan <-chan sdl.Event) *CPU {
 	return &CPU{
 		registers:  [8]uint8{},
 		PC:         0x000,
@@ -38,7 +37,6 @@ func NewCPU(mem memory.Mem, bufferChan chan<- []uint32, inputChan <-chan sdl.Eve
 		ime:        false,
 		ImeChan:    make(chan ImePayload),
 		CloseChan:  make(chan struct{}),
-		bufferChan: bufferChan,
 		inputChan:  inputChan,
 		cycleCount: 0,
 	}
@@ -100,6 +98,7 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 
 func (c *CPU) tick() {
 	c.cycleCount++
+	// TODO: Implement Scheduler
 
 	// INFO: Tick PPU 4 times. [1 T cycle]
 	c.memory.TickAllComponents(c.cycleCount)

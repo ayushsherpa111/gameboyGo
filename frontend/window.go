@@ -20,6 +20,7 @@ type window struct {
 	lgr        logger.Logger
 	inputChan  chan<- sdl.Event // Write Only Channel for keyboard events
 	bufferChan <-chan []uint32  // Read Only Channel for frame buffers
+	winBuf     []uint32
 }
 
 func (w *window) cleanUp() {
@@ -38,11 +39,19 @@ func (w *window) createTexture(txWidth, txHeight int32) error {
 	return nil
 }
 
+func WhiteOut(buf []uint32, col uint32) {
+	for i := 0; i < len(buf); i++ {
+		buf[i] = col
+	}
+}
+
 func createWindow(width, height int32, bufferChan <-chan []uint32) (*window, error) {
 	newWin := &window{
 		bufferChan: bufferChan,
 		lgr:        logger.NewLogger(os.Stdout, true, "Frontend"),
+		winBuf:     make([]uint32, WIDTH*HEIGHT),
 	}
+	WhiteOut(newWin.winBuf, 0xFFFFFFFF)
 	win, rend, err := sdl.CreateWindowAndRenderer(width, height, win_conf)
 	if err != nil {
 		return newWin, err

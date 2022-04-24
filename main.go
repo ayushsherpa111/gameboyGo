@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
@@ -20,6 +21,10 @@ import (
 var bootLoader []byte
 
 func main() {
+	if e := sdl.Init(frontend.CONFIG); e != nil {
+		// EmuWindow.lgr.Fatalf("Failed to Initialize SDL")
+		log.Fatal("Failed to Initialize SDL")
+	}
 	var ROM string
 	var debug bool
 
@@ -34,10 +39,9 @@ func main() {
 		lgr.Fatalf("No ROM provided")
 		os.Exit(2)
 	}
-	inputChan := make(chan sdl.Event)
-	bufferChan := make(chan []uint32)
+	bufferChan := make(chan []uint32, 60)
 
-	ppu := ppu.NewPPU()
+	ppu := ppu.NewPPU(bufferChan)
 	mem, err := memory.InitMem(bootLoader, ROM, debug, ppu)
 
 	if err != nil {
@@ -45,18 +49,23 @@ func main() {
 		os.Exit(-1)
 	}
 
-	cpu := cpu.NewCPU(mem, bufferChan, inputChan)
-	frontend.EmuWindow.SetChannels(bufferChan, inputChan)
+	cpu := cpu.NewCPU(mem, nil)
+	frontend.SetupWindow()
+	frontend.EmuWindow.SetChannels(bufferChan, nil)
 
-	go cpu.ListenIMEChan()
+	// go cpu.ListenIMEChan()
 
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
-	go frontend.EmuWindow.Run()
+	// go frontend.EmuWindow.Run()
 
-	for {
-		if e := cpu.FetchDecodeExec(store); e != nil {
-			cpu.CloseChan <- struct{}{}
-			return
+	go func() {
+		for {
+			if e := cpu.FetchDecodeExec(store); e != nil {
+				cpu.CloseChan <- struct{}{}
+				return
+			}
 		}
-	}
+	}()
+
+	frontend.EmuWindow.Run()
 }
