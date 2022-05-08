@@ -1,8 +1,8 @@
 package frontend
 
 import (
-	"fmt"
 	"log"
+	"os"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -36,24 +36,40 @@ func SetupWindow() {
 }
 
 func (w *window) Run() {
+	f, e := os.OpenFile("vram.test", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o777)
+	if e != nil {
+		w.lgr.Fatalf("Failed to open log file")
+	}
+	defer f.Close()
 	defer sdl.Quit()
 	defer EmuWindow.cleanUp()
 	isRunning := true
 
-	w.tex.UpdateRGBA(nil, w.winBuf, WIDTH)
+	go w.listenForInput()
+
 	for isRunning {
+		w.tex.UpdateRGBA(nil, w.winBuf, WIDTH)
 		w.renderer.Copy(w.tex, nil, nil)
 		w.renderer.Present()
-		v := <-w.bufferChan
-		fmt.Println("received")
-		w.tex.UpdateRGBA(nil, v, WIDTH)
-		// select {
-		// case
-		// default:
-		// }
-		// // handle key presses.
-		// for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-		// }
+		select {
+		case v := <-w.bufferChan:
+			// fmt.Fprintln(f, v)
+			// os.Exit(0)
+			w.winBuf = v
+		case key := <-w.sdlInpChan:
+			switch key {
+			case sdl.K_q:
+				w.lgr.Infof("Quitting")
+				isRunning = false
+				w.inputChan <- nil
+				if e != nil {
+					w.lgr.Errorf("Error marshalling frames")
+					return
+				}
+				break
+			}
+			// default:
+		}
 	}
 }
 

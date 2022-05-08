@@ -19,7 +19,8 @@ type window struct {
 	tex        *sdl.Texture
 	lgr        logger.Logger
 	inputChan  chan<- sdl.Event // Write Only Channel for keyboard events
-	bufferChan <-chan []uint32  // Read Only Channel for frame buffers
+	sdlInpChan chan sdl.Keycode
+	bufferChan <-chan []uint32 // Read Only Channel for frame buffers
 	winBuf     []uint32
 }
 
@@ -50,8 +51,9 @@ func createWindow(width, height int32, bufferChan <-chan []uint32) (*window, err
 		bufferChan: bufferChan,
 		lgr:        logger.NewLogger(os.Stdout, true, "Frontend"),
 		winBuf:     make([]uint32, WIDTH*HEIGHT),
+		sdlInpChan: make(chan sdl.Keycode, 60),
 	}
-	WhiteOut(newWin.winBuf, 0xFFFFFFFF)
+	WhiteOut(newWin.winBuf, 0xFA1F3F9F)
 	win, rend, err := sdl.CreateWindowAndRenderer(width, height, win_conf)
 	if err != nil {
 		return newWin, err
@@ -59,4 +61,15 @@ func createWindow(width, height int32, bufferChan <-chan []uint32) (*window, err
 	newWin.win = win
 	newWin.renderer = rend
 	return newWin, nil
+}
+
+func (w *window) listenForInput() {
+	for {
+		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+			switch t := event.(type) {
+			case *sdl.KeyboardEvent:
+				w.sdlInpChan <- t.Keysym.Sym
+			}
+		}
+	}
 }

@@ -20,7 +20,6 @@ type tile [8]tilePixelValue
 const (
 	BUF_X = 160
 	BUF_Y = 144
-	PITCH = 4
 
 	BG_SET_X = 32
 	BG_SET_Y = 32
@@ -91,7 +90,7 @@ type ppu struct {
 	vRAM          []uint8
 	oam           []uint8
 	oam_entries   [40]oam
-	canvas_buffer [BUF_X * BUF_Y]uint32
+	canvas_buffer []uint32
 	lgr           logger.Logger
 	// background    [BG_SET_X][BG_SET_Y]uint8
 	window  [][]uint8
@@ -111,7 +110,7 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 		oam:           make([]uint8, 159),
 		oam_entries:   [40]oam{},
 		lgr:           logger.NewLogger(os.Stdout, true, "PPU"),
-		canvas_buffer: [BUF_X * BUF_Y]uint32{},
+		canvas_buffer: make([]uint32, BUF_X*BUF_Y),
 		ppu_regs:      make([]uint8, 12),
 		bufChan:       bufferChan,
 		dots:          0,
@@ -124,13 +123,39 @@ func (p *ppu) fetchSprites() {
 }
 
 func (p *ppu) PrintDetails() {
-	file, err := os.OpenFile("../vram.test", os.O_CREATE|os.O_RDWR, 0o777)
+	file, err := os.OpenFile("vram.test", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o777)
 	if err != nil {
 		p.lgr.Fatalf("Failed to open vram.test %s", err.Error())
 	}
 	fmt.Fprintf(file, "%v", p.vRAM)
 	p.lgr.Infof(" LCDC: 0x%x\n", p.ppu_regs[parseIdx(LCD_C, PPU_BASE)])
 }
+
+func ParsePx(low, high uint8) []uint32 {
+	tileRow := make([]uint32, 8)
+	for i := 7; i >= 0; i-- {
+		bitlow, bitHigh := (low&(0x1<<i))>>i, (high&(0x1<<i))>>i
+		tileRow[7-i] = pallete[bitHigh<<1|bitlow]
+	}
+	return tileRow
+}
+
+func SetPx(x, y int, color uint32, buffer []uint32) {
+	newPX := (BUF_X * y) + x
+	buffer[newPX] = color
+}
+
+var (
+	sprites = [][]uint8{
+		{0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C},
+		{0x00, 0x00, 0x3c, 0x3c, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3c, 0x3c, 0x00, 0x00},
+		{0x00, 0x00, 0x18, 0x18, 0x38, 0x38, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3c, 0x3c, 0x00, 0x00},
+		{0x00, 0x00, 0x3c, 0x3c, 0x4e, 0x4e, 0x0e, 0x0e, 0x3c, 0x3c, 0x70, 0x70, 0x7e, 0x7e, 0x00, 0x00},
+		{0x00, 0x00, 0x7c, 0x7c, 0x0e, 0x0e, 0x3c, 0x3c, 0x0e, 0x0e, 0x0e, 0x0e, 0x7c, 0x7c, 0x00, 0x00},
+		{0x00, 0x00, 0x3c, 0x3c, 0x6c, 0x6c, 0x4c, 0x4c, 0x4e, 0x4e, 0x7e, 0x7e, 0x0c, 0x0c, 0x00, 0x00},
+		{0xff, 0xff, 0xff, 0x81, 0xc1, 0xbf, 0xc1, 0xbf, 0xc1, 0xbf, 0xc1, 0xbf, 0x81, 0xff, 0xff, 0xff},
+	}
+)
 
 func (p *ppu) UpdateGPU() {
 	// TODO: Check if the PPU is currently in a V_BLANK mode before entering mode 0
@@ -142,7 +167,6 @@ func (p *ppu) UpdateGPU() {
 	scY := &p.ppu_regs[parseIdx(ScY, PPU_BASE)]
 	scX := &p.ppu_regs[parseIdx(ScX, PPU_BASE)]
 
-	fmt.Println(*lY, p.dots)
 	if *lcd_c&LCD_PPU_ENABLE == 0 {
 		// LCD off
 		p.dots = 0
@@ -150,33 +174,34 @@ func (p *ppu) UpdateGPU() {
 		return
 	}
 
-	// checking for V_BLANK
-	if *lY >= 144 {
-		// MODE 1
-		// set LCD_S
-		// send frame buffer
-		fmt.Println("V_BLANK")
-		p.bufChan <- p.canvas_buffer[:]
-	} else {
-		if p.dots == 80 {
-			// build sprite array from OAM
-			// MODE 2
-			// p.fetchSprites()
-		} else if p.dots == (80 + 172) {
-			// MODE 3
-			p.scanLine(lcd_c, wY, scY, scX, lY, wX)
-		} else if p.dots == 80+172+204 {
-			// MODE 0
+	p.lgr.Printf("DOTS: %d\n", p.dots)
+	if p.dots >= 456 {
+		*lY++
+		*lY %= 154
+		// checking for V_BLANK
+		if *lY >= 144 {
+			// MODE 1
+			// set LCD_S
+			// send frame buffer
+			fmt.Println("V_BLANK")
+			p.bufChan <- p.canvas_buffer
 		}
+		// wrap LY
 	}
 
-	// wrap LY
-	*lY++
-	*lY %= 154
-
+	if p.dots == 80 {
+		// build sprite array from OAM
+		// MODE 2
+		// p.fetchSprites()
+	} else if p.dots == (80 + 172) {
+		// MODE 3a
+		p.lgr.Printf("Scanline started\n")
+		p.scanLine(lcd_c, wY, scY, scX, lY, wX)
+	} else if p.dots == 80+172+204 {
+		// MODE 0
+	}
 	p.dots++
-	p.dots = p.dots % 456
-
+	p.dots = p.dots % 457
 }
 
 func (p *ppu) getSlice(start, end uint16) []uint8 {
@@ -189,8 +214,19 @@ func (p *ppu) getSlice(start, end uint16) []uint8 {
 	return p.vRAM[newStart : newEnd+1]
 }
 
+func WhiteOut(buf []uint32, spriteArr []uint8, xcoord int) {
+	yCoord := 0
+	for i := 0; i < len(spriteArr)-1; i += 2 {
+		tile := ParsePx(spriteArr[i], spriteArr[i+1])
+		for j := 0; j < 8; j++ {
+			SetPx(j+(xcoord*8), yCoord, tile[j], buf)
+		}
+		yCoord += 1
+	}
+}
+
 func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
-	var currentTile uint8
+	var tileYpos uint8
 	var winBgTileData []uint8
 	var signed bool
 	var bgWinMap []uint8
@@ -204,14 +240,14 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 		} else {
 			bgWinMap = p.getSlice(0x9800, 0x9BFF)
 		}
-		currentTile = *ly - (*wY)
+		tileYpos = *ly - (*wY)
 	} else {
 		if *lcdc&BG_TILE_MAP == BG_TILE_MAP {
 			bgWinMap = p.getSlice(0x9C00, 0x9FFF)
 		} else {
 			bgWinMap = p.getSlice(0x9800, 0x9BFF)
 		}
-		currentTile = *ly + *scY
+		tileYpos = *ly + *scY
 	}
 
 	if *lcdc&BG_WIN_DATA == BG_WIN_DATA {
@@ -224,6 +260,10 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 	// var tileNum uint16 = (uint16(currentTile) / 8) * 32 // convert PX value to tile number
 	var x uint8
 
+	// for i:=0;i < len(winBgTileData)/16;i++ {
+	// 	WhiteOut(p.canvas_buffer, i, v)
+	// }
+	// return
 	for idx := byte(0); idx < 160; idx++ {
 		if drawWindow && idx > (*wX-7) {
 			x = idx - (*wX - 7)
@@ -231,10 +271,8 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 			x = idx + *scX
 		}
 
-		fmt.Println((uint16(currentTile) / 8), (uint16(x) / 8))
-		fmt.Println("BG LEN TILE ", len(bgWinMap))
-		var tileNum uint16 = ((uint16(currentTile) / 8) * 32) + (uint16(x) / 8) // convert PX value to tile number
-		tileIDX := bgWinMap[tileNum]                                            // tile number that is supposed to be drawn
+		var tileNum uint16 = ((uint16(tileYpos) / 8) * 32) + (uint16(x) / 8) // convert PX value to tile number
+		tileIDX := bgWinMap[tileNum]                                         // tile number that is supposed to be drawn
 		var tileDataAddr uint16
 		// fetch the tile from tile dataset
 		if signed {
@@ -246,11 +284,11 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 		}
 		// tileDataAddr points to the first byte of the tile. a tile contains 16 byte (each line of the tile is made up of 2 bytes).
 		// Next we find out which line of the current tile are we on
-		tileDataY := uint16(uint8(currentTile%8) * 2)
+		tileDataY := uint16(uint8(tileYpos%8) * 2)
 		low := winBgTileData[tileDataAddr+tileDataY]
 		high := winBgTileData[tileDataAddr+tileDataY+1]
 		bitNum := 7 - (x % 8) // left to right
-		p.canvas_buffer[(BUF_X*currentTile)+x] = constructPixel(low, high, bitNum)
+		p.canvas_buffer[(BUF_X*(*ly))+x] = constructPixel(low, high, bitNum)
 	}
 }
 
@@ -259,9 +297,8 @@ func (p *ppu) scanLine(lcdc, wY, scY, scX, ly, wX *uint8) {
 	if *lcdc&BG_WIN_ENABLE == BG_WIN_ENABLE {
 		// draw either the background or the window
 		p.drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX)
-	} else {
-		// draw the sprites
 	}
+	// draw the sprites
 }
 
 func (p *ppu) Read_VRAM(addr uint16) *uint8 {

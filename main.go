@@ -40,6 +40,7 @@ func main() {
 		os.Exit(2)
 	}
 	bufferChan := make(chan []uint32, 60)
+	inputChan := make(chan sdl.Event, 120)
 
 	ppu := ppu.NewPPU(bufferChan)
 	mem, err := memory.InitMem(bootLoader, ROM, debug, ppu)
@@ -51,18 +52,22 @@ func main() {
 
 	cpu := cpu.NewCPU(mem, nil)
 	frontend.SetupWindow()
-	frontend.EmuWindow.SetChannels(bufferChan, nil)
+	frontend.EmuWindow.SetChannels(bufferChan, inputChan)
 
 	// go cpu.ListenIMEChan()
 
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
-	// go frontend.EmuWindow.Run()
 
 	go func() {
 		for {
 			if e := cpu.FetchDecodeExec(store); e != nil {
 				cpu.CloseChan <- struct{}{}
 				return
+			}
+			select {
+			case <-inputChan:
+				break
+			default:
 			}
 		}
 	}()
