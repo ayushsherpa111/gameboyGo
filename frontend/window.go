@@ -50,7 +50,6 @@ func createWindow(width, height int32, bufferChan <-chan []uint32) (*window, err
 	newWin := &window{
 		bufferChan: bufferChan,
 		lgr:        logger.NewLogger(os.Stdout, true, "Frontend"),
-		winBuf:     make([]uint32, WIDTH*HEIGHT),
 		sdlInpChan: make(chan sdl.Keycode, 60),
 	}
 	WhiteOut(newWin.winBuf, 0xFA1F3F9F)
