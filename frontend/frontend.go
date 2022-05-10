@@ -46,15 +46,14 @@ func (w *window) Run() {
 	isRunning := true
 
 	go w.listenForInput()
-	// var v []uint32
+	var v []uint32
 
 	for isRunning {
+		w.tex.UpdateRGBA(nil, v, WIDTH)
+		w.renderer.Copy(w.tex, nil, nil)
+		w.renderer.Present()
 		select {
-		case v := <-w.bufferChan:
-			w.tex.UpdateRGBA(nil, v, WIDTH)
-			w.renderer.Copy(w.tex, nil, nil)
-			w.renderer.Present()
-
+		case v = <-w.bufferChan:
 		case key := <-w.sdlInpChan:
 			switch key {
 			case sdl.K_q:
@@ -67,7 +66,7 @@ func (w *window) Run() {
 				}
 				break
 			}
-			// default:
+		default:
 		}
 	}
 }

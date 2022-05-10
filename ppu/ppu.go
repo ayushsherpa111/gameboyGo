@@ -90,7 +90,7 @@ type ppu struct {
 	vRAM          []uint8
 	oam           []uint8
 	oam_entries   [40]oam
-	canvas_buffer []uint32
+	canvas_buffer [BUF_X * BUF_Y]uint32
 	lgr           logger.Logger
 	// background    [BG_SET_X][BG_SET_Y]uint8
 	window  [][]uint8
@@ -110,7 +110,7 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 		oam:           make([]uint8, 159),
 		oam_entries:   [40]oam{},
 		lgr:           logger.NewLogger(os.Stdout, true, "PPU"),
-		canvas_buffer: make([]uint32, BUF_X*BUF_Y),
+		canvas_buffer: [BUF_X * BUF_Y]uint32{},
 		ppu_regs:      make([]uint8, 12),
 		bufChan:       bufferChan,
 		dots:          0,
@@ -173,7 +173,7 @@ func (p *ppu) UpdateGPU() {
 		*lY = 0
 		return
 	}
-	temp := [BUF_X * BUF_Y]uint32{}
+	// temp := [BUF_X * BUF_Y]uint32{}
 
 	if p.dots >= 456 {
 		*lY++
@@ -184,8 +184,8 @@ func (p *ppu) UpdateGPU() {
 			// set LCD_S
 			// send frame buffer
 			fmt.Println("V_BLANK")
-			copy(temp[:], p.canvas_buffer)
-			p.bufChan <- temp[:]
+			// copy(temp[:], p.canvas_buffer[:])
+			p.bufChan <- p.canvas_buffer[:]
 		}
 		// wrap LY
 	}
@@ -269,9 +269,9 @@ func (p *ppu) drawBackgroundAndWinTemp(lcdc, ly, wY, scY, scX, wX *uint8) {
 		low := winBgTileData[tileDataAddr+tileDataY]
 		high := winBgTileData[tileDataAddr+tileDataY+1]
 		// bitNum := 7 - (x % 8) // left to right
-		for i := uint8(0); i < 8; i++ {
-			p.lgr.Printf("LY %d X %d Sc %d %d %d", *ly, idx+i, *scX, low, high)
-			p.canvas_buffer[(160*(*ly))+(idx+i)] = pallete[0] //constructPixel(low, high, 7-i)
+		for i := uint(0); i < 8; i++ {
+			p.lgr.Printf("LY %d X %d Sc %d %d %d", 160*(*ly), uint(idx)+i, *scX, low, high)
+			p.canvas_buffer[(160*uint(*ly))+uint(idx)+i] = constructPixel(low, high, uint8(7-i))
 		}
 	}
 }

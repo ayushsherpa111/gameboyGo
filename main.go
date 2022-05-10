@@ -39,7 +39,7 @@ func main() {
 		lgr.Fatalf("No ROM provided")
 		os.Exit(2)
 	}
-	bufferChan := make(chan []uint32, 60)
+	bufferChan := make(chan []uint32)
 	inputChan := make(chan sdl.Event, 120)
 
 	ppu := ppu.NewPPU(bufferChan)
