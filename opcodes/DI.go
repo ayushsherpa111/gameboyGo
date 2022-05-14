@@ -7,10 +7,7 @@ type DI struct {
 }
 
 func (d *DI) Exec(op byte) {
-	d.c.NewIMEConf = cpu.NewImePayload(
-		d.c.PC+1,
-		false,
-	)
+	d.c.IME = false
 }
 
 func NewDI(c *cpu.CPU) *DI {

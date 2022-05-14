@@ -7,7 +7,8 @@ type EI struct {
 }
 
 func (d *EI) Exec(op byte) {
-	d.c.NewIMEConf = cpu.NewImePayload(d.c.PC+1, true)
+	// d.c.NewIMEConf = cpu.NewImePayload(d.c.PC+1, true)
+	d.c.IME = true
 }
 
 func NewEI(c *cpu.CPU) *EI {

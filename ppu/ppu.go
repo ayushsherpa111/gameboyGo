@@ -13,8 +13,6 @@ type tilePixelValue struct {
 	high uint8
 }
 
-type tile [8]tilePixelValue
-
 // compose buffer using the tileset and the vram
 // 1 tile (8x8)px = 16 bytes
 const (
@@ -100,6 +98,7 @@ type ppu struct {
 	mode     PPU_MODE
 	dots     uint16 // ticks to determine the mode of the PPU
 	bufChan  chan<- []uint32
+	IF       *uint8
 }
 
 var defaultVal uint8 = 0xFF
@@ -107,7 +106,7 @@ var defaultVal uint8 = 0xFF
 func NewPPU(bufferChan chan<- []uint32) *ppu {
 	p := &ppu{
 		vRAM:          make([]uint8, 8*1024),
-		oam:           make([]uint8, 159),
+		oam:           make([]uint8, 160),
 		oam_entries:   [40]oam{},
 		lgr:           logger.NewLogger(os.Stdout, true, "PPU"),
 		canvas_buffer: [BUF_X * BUF_Y]uint32{},
@@ -118,6 +117,7 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 	return p
 }
 
+// TODO: implement OAM fetch mode
 func (p *ppu) fetchSprites() {
 
 }
@@ -179,6 +179,11 @@ func (p *ppu) UpdateGPU() {
 		*lY %= 154
 		// checking for V_BLANK
 		if *lY >= 144 {
+			if *lY == 144 {
+				p.setInterrupt(0x01)
+			}
+			// if *
+			p.mode = MODE_1
 			// MODE 1
 			// set LCD_S
 			// send frame buffer
@@ -191,13 +196,13 @@ func (p *ppu) UpdateGPU() {
 	if *lY < 144 {
 		if p.dots == 80 {
 			// build sprite array from OAM
-			// MODE 2
+			p.mode = MODE_2
 			// p.fetchSprites()
 		} else if p.dots == (80 + 172) {
-			// MODE 3a
+			p.mode = MODE_3
 			p.scanLine(lcd_c, wY, scY, scX, lY, wX)
 		} else if p.dots == 80+172+204 {
-			// MODE 0
+			p.mode = MODE_0
 		}
 	}
 	p.dots++
@@ -257,7 +262,6 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 		signed = true
 	}
 
-	// var tileNum uint16 = (uint16(currentTile) / 8) * 32 // convert PX value to tile number
 	var x uint8
 
 	for idx := byte(0); idx < BUF_X; idx += 8 {
@@ -286,7 +290,6 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 
 		for i := uint8(0); i < 8; i++ {
 			idxCoord := BUF_X*uint(*ly) + uint(idx) + uint(i)
-
 			p.canvas_buffer[idxCoord] = constructPixel(low, high, 7-i)
 		}
 	}
@@ -344,6 +347,19 @@ func (p *ppu) Write_Regs(regAddr uint16, val uint8) error {
 	}
 	p.ppu_regs[newIdx] = val
 	return nil
+}
+
+func (p *ppu) clearInterrupt(interrupt uint8) {
+	*p.IF &= ^interrupt
+}
+
+func (p *ppu) setInterrupt(interrupt uint8) {
+	*p.IF |= interrupt
+}
+
+func (p *ppu) RefInterruptFlag(IF *uint8) {
+	// TODO: map the value to be only
+	p.IF = IF
 }
 
 func parseIdx(idx uint16, baseAddr uint16) uint32 {

@@ -9,4 +9,5 @@ type GPU interface {
 	Read_Regs(uint16) *uint8
 	Write_Regs(uint16, uint8) error
 	PrintDetails()
+	RefInterruptFlag(*uint8)
 }

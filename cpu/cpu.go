@@ -12,6 +12,18 @@ import (
 
 const (
 	V_BLANK uint8 = 1 << iota
+	LCD_STAT
+	TIMER
+	SERIAL
+	JOYPAD
+)
+
+var (
+	VB_VEC = 0x40
+	ST_VEC = 0x48
+	TM_VEC = 0x50
+	SE_VEC = 0x58
+	JP_VEC = 0x60
 )
 
 type CPU struct {
@@ -20,7 +32,7 @@ type CPU struct {
 	SP         uint16
 	memory     memory.Mem
 	store      []interfaces.Instruction
-	ime        bool
+	IME        bool
 	ImeChan    chan ImePayload
 	NewIMEConf ImePayload
 	CloseChan  chan struct{}
@@ -34,7 +46,7 @@ func NewCPU(mem memory.Mem, inputChan <-chan sdl.Event) *CPU {
 		PC:         0x000,
 		SP:         0xFFFE,
 		memory:     mem,
-		ime:        false,
+		IME:        false,
 		ImeChan:    make(chan ImePayload),
 		CloseChan:  make(chan struct{}),
 		inputChan:  inputChan,
@@ -46,7 +58,7 @@ func (c *CPU) ListenIMEChan() {
 	for {
 		select {
 		case conf := <-c.ImeChan:
-			c.ime = conf.flag
+			c.IME = conf.flag
 		case <-c.CloseChan:
 			return
 		}
@@ -204,7 +216,7 @@ func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 	}
 
 	// handle interrupt at the end of each cycle
-	// c.handleInterrupt()
+	c.handleInterrupt()
 
 	return nil
 }
@@ -248,12 +260,45 @@ func (c *CPU) FetchSP() uint16 {
 	return u16
 }
 
+func isEnabled(inter uint8, bit uint8) bool {
+	return (inter & bit) == bit
+}
+
 func (c *CPU) handleInterrupt() {
-	if !c.ime {
+	if !c.IME {
 		return
 	}
-	IE, IF := *c.memory.MemRead(memory.INTERRUPT_ENABLE), *c.memory.MemRead(memory.INTERRUPT_FLAG)
-	if IE&IF == V_BLANK {
+	IE, IF := c.memory.MemRead(memory.INTERRUPT_ENABLE), c.memory.MemRead(memory.INTERRUPT_FLAG)
+	interrupt := *IE & *IF
 
+	if interrupt&0x0F >= 1 {
+		c.IME = false
+		c.PushSP(c.SP)
 	}
+
+	switch {
+	case isEnabled(interrupt, V_BLANK):
+		*IF = clearBit(*IF, V_BLANK)
+		c.PC = uint16(VB_VEC)
+	case isEnabled(interrupt, LCD_STAT):
+		*IF = clearBit(*IF, LCD_STAT)
+		c.PC = uint16(VB_VEC)
+
+	case isEnabled(interrupt, TIMER):
+		*IF = clearBit(*IF, TIMER)
+		c.PC = uint16(VB_VEC)
+
+	case isEnabled(interrupt, SERIAL):
+		*IF = clearBit(*IF, SERIAL)
+		c.PC = uint16(VB_VEC)
+
+	case isEnabled(interrupt, JOYPAD):
+		*IF = clearBit(*IF, JOYPAD)
+		c.PC = uint16(VB_VEC)
+	}
+
+}
+
+func clearBit(flag, bitNum uint8) uint8 {
+	return flag &^ bitNum
 }

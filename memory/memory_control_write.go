@@ -1,17 +1,19 @@
 package memory
 
-import "fmt"
+import (
+	"fmt"
 
-type writeMemFunc func(uint8) error
+	"github.com/ayushsherpa111/gameboyEMU/types"
+)
 
 // TODO: handle using `interface.cart`. Placeholder for now.
-func (m *memory) write_rom(addr uint16) writeMemFunc {
+func (m *memory) write_rom(addr uint16) types.WriteMemFunc {
 	return func(val uint8) error {
 		return nil
 	}
 }
 
-func (m *memory) write_vram(addr uint16) writeMemFunc {
+func (m *memory) write_vram(addr uint16) types.WriteMemFunc {
 	newAddr := addr - VRAM_START
 	return func(val uint8) error {
 		m.gpu.Write_VRAM(newAddr, val)
@@ -20,7 +22,7 @@ func (m *memory) write_vram(addr uint16) writeMemFunc {
 }
 
 // TODO: implement through cart.
-func (m *memory) write_eram(addr uint16) writeMemFunc {
+func (m *memory) write_eram(addr uint16) types.WriteMemFunc {
 	newAddr := addr - EXT_RAM_START
 	return func(val uint8) error {
 		m.eRAM[newAddr] = val
@@ -28,7 +30,7 @@ func (m *memory) write_eram(addr uint16) writeMemFunc {
 	}
 }
 
-func (m *memory) write_wram(addr uint16) writeMemFunc {
+func (m *memory) write_wram(addr uint16) types.WriteMemFunc {
 	newAddr := mapwRAMIndex(addr)
 	return func(u uint8) error {
 		m.wRAM[newAddr] = u
@@ -36,7 +38,7 @@ func (m *memory) write_wram(addr uint16) writeMemFunc {
 	}
 }
 
-func (m *memory) write_oam(addr uint16) writeMemFunc {
+func (m *memory) write_oam(addr uint16) types.WriteMemFunc {
 	newAddr := addr - OAM_START
 	return func(val uint8) error {
 		m.gpu.Write_OAM(newAddr, val)
@@ -44,7 +46,14 @@ func (m *memory) write_oam(addr uint16) writeMemFunc {
 	}
 }
 
-func (m *memory) write_io(addr uint16) writeMemFunc {
+func (m *memory) ignore_io_write() types.WriteMemFunc {
+	return func(u uint8) error {
+		return nil
+	}
+}
+
+// 0xFEFF
+func (m *memory) write_io(addr uint16) types.WriteMemFunc {
 	if _, ok := PPU_REGS[addr]; ok {
 		return func(val uint8) error {
 			return m.gpu.Write_Regs(addr, val)
@@ -61,7 +70,7 @@ func (m *memory) write_io(addr uint16) writeMemFunc {
 	}
 }
 
-func (m *memory) write_hram(addr uint16) writeMemFunc {
+func (m *memory) write_hram(addr uint16) types.WriteMemFunc {
 	newAddr := addr - HRAM_START
 	return func(u uint8) error {
 		m.hRAM[newAddr] = u
@@ -69,14 +78,14 @@ func (m *memory) write_hram(addr uint16) writeMemFunc {
 	}
 }
 
-func (m *memory) write_IE(addr uint16) writeMemFunc {
+func (m *memory) write_IE(addr uint16) types.WriteMemFunc {
 	return func(u uint8) error {
 		m.IE[0] = u
 		return nil
 	}
 }
 
-func (m *memory) write_IF(addr uint16) writeMemFunc {
+func (m *memory) write_IF(addr uint16) types.WriteMemFunc {
 	return func(u uint8) error {
 		m.IF[0] = u
 		return nil

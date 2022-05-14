@@ -8,6 +8,7 @@ import (
 	"github.com/ayushsherpa111/gameboyEMU/cartridge"
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 	"github.com/ayushsherpa111/gameboyEMU/logger"
+	"github.com/ayushsherpa111/gameboyEMU/types"
 )
 
 type Mem interface {
@@ -52,6 +53,9 @@ const (
 
 	HRAM_START = 0xFF80
 	HRAM_END   = 0xFFFE
+
+	NU_START = 0xFEA0
+	NU_END   = 0xFEFF
 
 	IO_START = 0xFF00
 	IO_END   = 0xFF7F
@@ -133,7 +137,7 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*me
 		isBootLoaderLoaded: true,
 		eRAM:               make([]uint8, 8*1024),
 		wRAM:               make([]uint8, 8*1024),
-		hRAM:               make([]uint8, 126),
+		hRAM:               make([]uint8, 127),
 		romData:            make([]uint8, 32*1024),
 		ioRegs:             make([]uint8, 128),
 		bootloader:         bootLoader,
@@ -146,6 +150,7 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*me
 	}
 	mem.cart.HeaderInfo()
 	mem.ioRegs[LY_REG-IO_START] = 0x90
+	gpu.RefInterruptFlag(mem.read_IF()())
 
 	if e := mem.loadROM(romData); e != nil {
 		return nil, e
@@ -167,7 +172,7 @@ func (m *memory) loadROM(romData []byte) error {
 	return nil
 }
 
-func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
+func (m *memory) getReadMemBlock(addr uint16) types.ReadMemFunc {
 	if m.isBootLoaderLoaded && addr <= 0xff {
 		return m.read_boot_loader(addr)
 	} else if addr <= ROM_END {
@@ -182,6 +187,8 @@ func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
 		return m.read_wram(addr)
 	} else if addr <= OAM_END {
 		return m.read_oam(addr)
+	} else if addr <= NU_END {
+		return m.ignore_io_read()
 	} else if addr <= IO_END {
 		return m.read_io(addr)
 	} else if addr <= HRAM_END {
@@ -194,7 +201,7 @@ func (m *memory) getReadMemBlock(addr uint16) readMemFunc {
 	return nil
 }
 
-func (m *memory) getWriteMemBlock(addr uint16) writeMemFunc {
+func (m *memory) getWriteMemBlock(addr uint16) types.WriteMemFunc {
 	if addr <= ROM_END {
 		return m.write_rom(addr)
 	} else if addr <= VRAM_END {
@@ -207,6 +214,8 @@ func (m *memory) getWriteMemBlock(addr uint16) writeMemFunc {
 		return m.write_wram(addr)
 	} else if addr <= OAM_END {
 		return m.write_oam(addr)
+	} else if addr <= NU_END {
+		return m.ignore_io_write()
 	} else if addr <= IO_END {
 		return m.write_io(addr)
 	} else if addr <= HRAM_END {

@@ -39,7 +39,7 @@ func main() {
 		lgr.Fatalf("No ROM provided")
 		os.Exit(2)
 	}
-	bufferChan := make(chan []uint32)
+	bufferChan := make(chan []uint32, 10)
 	inputChan := make(chan sdl.Event, 120)
 
 	ppu := ppu.NewPPU(bufferChan)
@@ -53,7 +53,6 @@ func main() {
 	cpu := cpu.NewCPU(mem, nil)
 	frontend.SetupWindow()
 	frontend.EmuWindow.SetChannels(bufferChan, inputChan)
-
 	// go cpu.ListenIMEChan()
 
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
