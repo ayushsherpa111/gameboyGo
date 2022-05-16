@@ -63,6 +63,8 @@ func (m *memory) write_io(addr uint16) types.WriteMemFunc {
 	newAddr := addr - IO_START
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
+
+		// only for debugging
 		if newAddr == 0x1 {
 			fmt.Printf("%c ", u)
 		}

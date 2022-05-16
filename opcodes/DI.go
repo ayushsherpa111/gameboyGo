@@ -7,7 +7,7 @@ type DI struct {
 }
 
 func (d *DI) Exec(op byte) {
-	d.c.IME = false
+	d.c.SetIME(false)()
 }
 
 func NewDI(c *cpu.CPU) *DI {

@@ -39,17 +39,3 @@ const (
 	NEG       uint8 = 0b01000000
 	ZERO      uint8 = 0b10000000
 )
-
-type ImePayload struct {
-	nextPC  uint16
-	flag    bool
-	changed bool
-}
-
-func NewImePayload(nextPC uint16, EI bool) ImePayload {
-	return ImePayload{
-		nextPC:  nextPC,
-		flag:    EI,
-		changed: true,
-	}
-}

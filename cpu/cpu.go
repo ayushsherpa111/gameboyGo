@@ -7,7 +7,6 @@ import (
 
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -32,36 +31,27 @@ type CPU struct {
 	SP         uint16
 	memory     memory.Mem
 	store      []interfaces.Instruction
-	IME        bool
-	ImeChan    chan ImePayload
-	NewIMEConf ImePayload
+	ime        bool
 	CloseChan  chan struct{}
-	inputChan  <-chan sdl.Event
 	cycleCount uint64
+	Scheduler  interfaces.Scheduler
 }
 
-func NewCPU(mem memory.Mem, inputChan <-chan sdl.Event) *CPU {
+func NewCPU(mem memory.Mem) *CPU {
 	return &CPU{
 		registers:  [8]uint8{},
 		PC:         0x000,
 		SP:         0xFFFE,
 		memory:     mem,
-		IME:        false,
-		ImeChan:    make(chan ImePayload),
+		ime:        false,
 		CloseChan:  make(chan struct{}),
-		inputChan:  inputChan,
 		cycleCount: 0,
 	}
 }
 
-func (c *CPU) ListenIMEChan() {
-	for {
-		select {
-		case conf := <-c.ImeChan:
-			c.IME = conf.flag
-		case <-c.CloseChan:
-			return
-		}
+func (c *CPU) SetIME(v bool) func() {
+	return func() {
+		c.ime = v
 	}
 }
 
@@ -209,14 +199,9 @@ func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 
 	store[inst].Exec(inst)
 
-	// Once the PC is greater than the PC at DI/EI/RETI send signal to change the value of EI
-	if c.NewIMEConf.changed && c.PC > c.NewIMEConf.nextPC {
-		c.ImeChan <- c.NewIMEConf
-		c.NewIMEConf.changed = false
-	}
-
 	// handle interrupt at the end of each cycle
 	c.handleInterrupt()
+	c.Scheduler.Tick()
 
 	return nil
 }
@@ -265,14 +250,14 @@ func isEnabled(inter uint8, bit uint8) bool {
 }
 
 func (c *CPU) handleInterrupt() {
-	if !c.IME {
+	if !c.ime {
 		return
 	}
 	IE, IF := c.memory.MemRead(memory.INTERRUPT_ENABLE), c.memory.MemRead(memory.INTERRUPT_FLAG)
 	interrupt := *IE & *IF
 
 	if interrupt&0x0F >= 1 {
-		c.IME = false
+		c.ime = false
 		c.PushSP(c.SP)
 	}
 

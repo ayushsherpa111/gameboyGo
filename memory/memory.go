@@ -65,6 +65,10 @@ const (
 
 	INTERRUPT_FLAG   = 0xFF0F
 	INTERRUPT_ENABLE = 0xFFFF
+
+	TIMA = 0xFF05
+	TMA  = 0xFF06
+	TAC  = 0xFF07
 )
 
 func mapwRAMIndex(addr uint16) uint16 {

@@ -14,6 +14,7 @@ import (
 	"github.com/ayushsherpa111/gameboyEMU/memory"
 	"github.com/ayushsherpa111/gameboyEMU/opcodes"
 	"github.com/ayushsherpa111/gameboyEMU/ppu"
+	"github.com/ayushsherpa111/gameboyEMU/scheduler"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -50,10 +51,11 @@ func main() {
 		os.Exit(-1)
 	}
 
-	cpu := cpu.NewCPU(mem, nil)
+	cpu := cpu.NewCPU(mem)
+	cpu.Scheduler = scheduler.NewScheduler()
+
 	frontend.SetupWindow()
 	frontend.EmuWindow.SetChannels(bufferChan, inputChan)
-	// go cpu.ListenIMEChan()
 
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
 

@@ -13,6 +13,13 @@ type tilePixelValue struct {
 	high uint8
 }
 
+const (
+	LCD_STAT_HBLANK      uint8 = 0x00
+	LCD_STAT_VBLANK      uint8 = 0x01
+	LCD_STAT_OAM_RAM     uint8 = 0x02
+	LCD_STAT_DATA2DRIVER uint8 = 0x03
+)
+
 // compose buffer using the tileset and the vram
 // 1 tile (8x8)px = 16 bytes
 const (
@@ -44,6 +51,7 @@ type PPU_MODE uint8
 
 var PPU_BASE uint16 = 0xFF40
 var V_RAM_START uint16 = 0x8000
+var LY_LYC_FLAG uint8 = 0x02
 
 const (
 	MODE_0 PPU_MODE = iota
@@ -157,11 +165,18 @@ var (
 	}
 )
 
+func setLCDStatus(LCDS, setBit uint8) uint8 {
+	LCDS &= 0xFC
+	LCDS |= setBit
+	return LCDS
+}
+
 func (p *ppu) UpdateGPU() {
 	// TODO: Check if the PPU is currently in a V_BLANK mode before entering mode 0
 
 	lcd_c := &p.ppu_regs[parseIdx(LCD_C, PPU_BASE)]
 	lY := &p.ppu_regs[parseIdx(Ly, PPU_BASE)]
+	lYc := &p.ppu_regs[parseIdx(LyC, PPU_BASE)]
 	wY := &p.ppu_regs[parseIdx(Wy, PPU_BASE)]
 	wX := &p.ppu_regs[parseIdx(Wx, PPU_BASE)]
 	scY := &p.ppu_regs[parseIdx(ScY, PPU_BASE)]
@@ -173,6 +188,9 @@ func (p *ppu) UpdateGPU() {
 		*lY = 0
 		return
 	}
+	if *lY == *lYc {
+		*lYc |= LY_LYC_FLAG
+	}
 
 	if p.dots >= 456 {
 		*lY++
@@ -182,12 +200,10 @@ func (p *ppu) UpdateGPU() {
 			if *lY == 144 {
 				p.setInterrupt(0x01)
 			}
-			// if *
 			p.mode = MODE_1
-			// MODE 1
-			// set LCD_S
 			// send frame buffer
 			fmt.Println("V_BLANK")
+			*lYc = setLCDStatus(*lYc, LCD_STAT_VBLANK)
 			p.bufChan <- p.canvas_buffer[:]
 		}
 		// wrap LY
@@ -197,12 +213,15 @@ func (p *ppu) UpdateGPU() {
 		if p.dots == 80 {
 			// build sprite array from OAM
 			p.mode = MODE_2
+			*lYc = setLCDStatus(*lYc, LCD_STAT_OAM_RAM)
 			// p.fetchSprites()
 		} else if p.dots == (80 + 172) {
 			p.mode = MODE_3
+			*lYc = setLCDStatus(*lYc, LCD_STAT_DATA2DRIVER)
 			p.scanLine(lcd_c, wY, scY, scX, lY, wX)
 		} else if p.dots == 80+172+204 {
 			p.mode = MODE_0
+			*lYc = setLCDStatus(*lYc, LCD_STAT_HBLANK)
 		}
 	}
 	p.dots++
@@ -332,6 +351,9 @@ func (p *ppu) Read_OAM(addr uint16) *uint8 {
 }
 
 func (p *ppu) Write_OAM(addr uint16, val uint8) {
+	if p.mode == MODE_2 {
+		return
+	}
 	p.oam[addr] = val
 }
 
