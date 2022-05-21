@@ -33,7 +33,7 @@ type CPU struct {
 	store      []interfaces.Instruction
 	ime        bool
 	CloseChan  chan struct{}
-	cycleCount uint64
+	CycleCount uint64
 	Scheduler  interfaces.Scheduler
 }
 
@@ -45,7 +45,7 @@ func NewCPU(mem memory.Mem) *CPU {
 		memory:     mem,
 		ime:        false,
 		CloseChan:  make(chan struct{}),
-		cycleCount: 0,
+		CycleCount: 0,
 	}
 }
 
@@ -99,11 +99,11 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 }
 
 func (c *CPU) tick() {
-	c.cycleCount++
+	c.CycleCount++
 	// TODO: Implement Scheduler
 
 	// INFO: Tick PPU 4 times. [1 T cycle]
-	c.memory.TickAllComponents(c.cycleCount)
+	c.memory.TickAllComponents(c.CycleCount)
 }
 
 func (c *CPU) Fetch() (uint8, error) {
