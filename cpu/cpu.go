@@ -99,8 +99,8 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 }
 
 func (c *CPU) tick() {
+	c.Scheduler.Tick()
 	c.CycleCount++
-	// TODO: Implement Scheduler
 
 	// INFO: Tick PPU 4 times. [1 T cycle]
 	c.memory.TickAllComponents(c.CycleCount)
@@ -201,7 +201,6 @@ func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 
 	// handle interrupt at the end of each cycle
 	c.handleInterrupt()
-	c.Scheduler.Tick()
 
 	return nil
 }
