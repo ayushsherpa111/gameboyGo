@@ -11,13 +11,6 @@ import (
 	"github.com/ayushsherpa111/gameboyEMU/types"
 )
 
-type Mem interface {
-	MemRead(addr uint16) *uint8
-	MemWrite(addr uint16, val uint8) error
-	UnloadBootloader()
-	TickAllComponents(uint64)
-}
-
 var (
 	PPU_REGS = map[uint16]struct{}{
 		0xFF40: {},
@@ -69,6 +62,16 @@ const (
 	TIMA = 0xFF05
 	TMA  = 0xFF06
 	TAC  = 0xFF07
+
+	TIMER_ENABLE = 0x4
+)
+
+const (
+	VBLANK_IF = 1 << iota
+	LCDS_IF
+	TIMER_IF
+	SERIAL_IF
+	JOYPAD_IF
 )
 
 func mapwRAMIndex(addr uint16) uint16 {
@@ -101,16 +104,23 @@ type memory struct {
 	rom                string
 	isBootLoaderLoaded bool
 
-	romData []uint8 // 0x0000 - 0x8000
-	eRAM    []uint8 // 0xA000 - 0xBFFF
-	wRAM    []uint8 // 0xC000 - 0xDFFF
-	hRAM    []uint8 // 0xFF80 - 0xFFFE
-	ioRegs  []uint8 // 0xFF00 - 0xFF70
-	IF      []uint8 // 0xFF0F
-	IE      []uint8 // 0xFFFF
-	lgr     logger.Logger
-	cart    interfaces.Cart
-	gpu     interfaces.GPU
+	romData   []uint8 // 0x0000 - 0x8000
+	eRAM      []uint8 // 0xA000 - 0xBFFF
+	wRAM      []uint8 // 0xC000 - 0xDFFF
+	hRAM      []uint8 // 0xFF80 - 0xFFFE
+	ioRegs    []uint8 // 0xFF00 - 0xFF70
+	IF        []uint8 // 0xFF0F
+	IE        []uint8 // 0xFFFF
+	lgr       logger.Logger
+	cart      interfaces.Cart
+	gpu       interfaces.GPU
+	Scheduler interfaces.Scheduler
+}
+
+func (m *memory) SetIFTimer() func() {
+	return func() {
+		m.ioRegs[INTERRUPT_FLAG-IO_START] |= TIMER_IF
+	}
 }
 
 func (m *memory) UnloadBootloader() {

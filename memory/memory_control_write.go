@@ -63,6 +63,13 @@ func (m *memory) write_io(addr uint16) types.WriteMemFunc {
 	newAddr := addr - IO_START
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
+		switch addr {
+		case TIMA:
+			m.scheduleTimerEvents(u)
+		case TAC:
+			tima := m.ioRegs[TIMA-IO_START]
+			m.scheduleTimerEvents(tima)
+		}
 
 		// only for debugging
 		if newAddr == 0x1 {

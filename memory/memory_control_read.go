@@ -9,6 +9,7 @@ func (m *memory) ignore_io_read() types.ReadMemFunc {
 func (m *memory) read_io(addr uint16) types.ReadMemFunc {
 	if _, ok := PPU_REGS[addr]; ok {
 		return func() *uint8 {
+			// TODO: Handle reads to TIMA by using the cpu cycles and the TAC register
 			return m.gpu.Read_Regs(addr)
 		}
 	}

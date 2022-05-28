@@ -25,11 +25,13 @@ var (
 	JP_VEC = 0x60
 )
 
+var BOOTLOADER_UNLOADED bool = false
+
 type CPU struct {
 	registers  [8]uint8
 	PC         uint16
 	SP         uint16
-	memory     memory.Mem
+	memory     interfaces.Mem
 	store      []interfaces.Instruction
 	ime        bool
 	CloseChan  chan struct{}
@@ -37,7 +39,7 @@ type CPU struct {
 	Scheduler  interfaces.Scheduler
 }
 
-func NewCPU(mem memory.Mem) *CPU {
+func NewCPU(mem interfaces.Mem) *CPU {
 	return &CPU{
 		registers:  [8]uint8{},
 		PC:         0x000,
