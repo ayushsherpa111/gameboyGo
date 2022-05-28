@@ -98,17 +98,21 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 	return &c.registers[reg]
 }
 
+func (c *CPU) ScheduleEI(cycles uint64) {
+	c.Scheduler.ScheduleEvent(c.SetIME(true), cycles)
+}
+
 func (c *CPU) tick() {
-	c.Scheduler.Tick()
-	c.CycleCount++
+	c.CycleCount++ // 5028109
 
 	// INFO: Tick PPU 4 times. [1 T cycle]
 	c.memory.TickAllComponents(c.CycleCount)
 }
 
 func (c *CPU) Fetch() (uint8, error) {
-	if c.PC >= 0x100 {
+	if c.PC >= 0x100 && !BOOTLOADER_UNLOADED {
 		c.memory.UnloadBootloader()
+		BOOTLOADER_UNLOADED = true
 	}
 	b := c.memory.MemRead(c.PC)
 	c.tick()
@@ -199,6 +203,8 @@ func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 
 	store[inst].Exec(inst)
 
+	c.Scheduler.Tick()
+
 	// handle interrupt at the end of each cycle
 	c.handleInterrupt()
 
@@ -257,7 +263,7 @@ func (c *CPU) handleInterrupt() {
 
 	if interrupt&0x0F >= 1 {
 		c.ime = false
-		c.PushSP(c.SP)
+		c.PushSP(c.PC)
 	}
 
 	switch {

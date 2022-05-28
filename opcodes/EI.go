@@ -7,7 +7,7 @@ type EI struct {
 }
 
 func (d *EI) Exec(op byte) {
-	d.c.Scheduler.ScheduleEvent(d.c.SetIME(true), 1)
+	d.c.ScheduleEI(1)
 }
 
 func NewEI(c *cpu.CPU) *EI {

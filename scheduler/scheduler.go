@@ -19,8 +19,8 @@ type scheduler struct {
 	refCPU     *cpu.CPU
 }
 
-func NewScheduler(c *cpu.CPU) scheduler {
-	return scheduler{
+func NewScheduler(c *cpu.CPU) *scheduler {
+	return &scheduler{
 		eventQueue: make([]event, 0, MAX_EVENT_QUEUE),
 		refCPU:     c,
 	}
@@ -33,7 +33,7 @@ func newEvent(evFunc types.Events, cycles uint64) event {
 	}
 }
 
-func (s scheduler) ScheduleEvent(event types.Events, cycles uint64) error {
+func (s *scheduler) ScheduleEvent(event types.Events, cycles uint64) error {
 	if len(s.eventQueue) == MAX_EVENT_QUEUE {
 		return errors.New("Event queue full")
 	}
@@ -53,7 +53,7 @@ func (s scheduler) ScheduleEvent(event types.Events, cycles uint64) error {
 	return nil
 }
 
-func (s scheduler) Tick() {
+func (s *scheduler) Tick() {
 	// loop through the queue and check if
 	currCycle := s.refCPU.CycleCount
 	for {
