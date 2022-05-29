@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 	"github.com/ayushsherpa111/gameboyEMU/types"
@@ -12,6 +13,7 @@ const MAX_EVENT_QUEUE = 256
 type event struct {
 	cycles uint64
 	evFnc  types.Events
+	evType types.EventType
 }
 
 type scheduler struct {
@@ -26,18 +28,19 @@ func NewScheduler(c *cpu.CPU) *scheduler {
 	}
 }
 
-func newEvent(evFunc types.Events, cycles uint64) event {
+func newEvent(evFunc types.Events, cycles uint64, evType types.EventType) event {
 	return event{
 		cycles,
 		evFunc,
+		evType,
 	}
 }
 
-func (s *scheduler) ScheduleEvent(event types.Events, cycles uint64) error {
+func (s *scheduler) ScheduleEvent(event types.Events, cycles uint64, evType types.EventType) error {
 	if len(s.eventQueue) == MAX_EVENT_QUEUE {
 		return errors.New("Event queue full")
 	}
-	evQ := newEvent(event, s.refCPU.CycleCount+cycles)
+	evQ := newEvent(event, s.refCPU.CycleCount+cycles, evType)
 
 	if len(s.eventQueue) == 0 {
 		s.eventQueue = append(s.eventQueue, evQ)
@@ -68,4 +71,16 @@ func (s *scheduler) Tick() {
 			break
 		}
 	}
+}
+
+func (s *scheduler) ClearEventType(ev types.EventType) {
+	newQueue := make([]event, 0, MAX_EVENT_QUEUE)
+	fmt.Println("BEfore ", s.eventQueue)
+	for _, v := range s.eventQueue {
+		if v.evType != ev {
+			newQueue = append(newQueue, v)
+		}
+	}
+	s.eventQueue = newQueue
+	fmt.Println("AFTER", s.eventQueue)
 }

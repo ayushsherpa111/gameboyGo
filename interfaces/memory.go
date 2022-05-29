@@ -1,8 +1,8 @@
 package interfaces
 
 type Mem interface {
-	MemRead(addr uint16) *uint8
-	MemWrite(addr uint16, val uint8) error
+	MemRead(uint16, uint64) *uint8
+	MemWrite(uint16, uint8, uint64) error
 	UnloadBootloader()
 	TickAllComponents(uint64)
 }

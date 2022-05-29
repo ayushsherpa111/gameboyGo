@@ -202,7 +202,7 @@ func (p *ppu) UpdateGPU() {
 			}
 			p.mode = MODE_1
 			// send frame buffer
-			fmt.Println("V_BLANK")
+			// fmt.Println("V_BLANK")
 			*lYc = setLCDStatus(*lYc, LCD_STAT_VBLANK)
 			p.bufChan <- p.canvas_buffer[:]
 		}

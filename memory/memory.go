@@ -104,17 +104,18 @@ type memory struct {
 	rom                string
 	isBootLoaderLoaded bool
 
-	romData   []uint8 // 0x0000 - 0x8000
-	eRAM      []uint8 // 0xA000 - 0xBFFF
-	wRAM      []uint8 // 0xC000 - 0xDFFF
-	hRAM      []uint8 // 0xFF80 - 0xFFFE
-	ioRegs    []uint8 // 0xFF00 - 0xFF70
-	IF        []uint8 // 0xFF0F
-	IE        []uint8 // 0xFFFF
-	lgr       logger.Logger
-	cart      interfaces.Cart
-	gpu       interfaces.GPU
-	Scheduler interfaces.Scheduler
+	romData        []uint8 // 0x0000 - 0x8000
+	eRAM           []uint8 // 0xA000 - 0xBFFF
+	wRAM           []uint8 // 0xC000 - 0xDFFF
+	hRAM           []uint8 // 0xFF80 - 0xFFFE
+	ioRegs         []uint8 // 0xFF00 - 0xFF70
+	IF             []uint8 // 0xFF0F
+	IE             []uint8 // 0xFFFF
+	lgr            logger.Logger
+	cart           interfaces.Cart
+	gpu            interfaces.GPU
+	Scheduler      interfaces.Scheduler
+	lastCycleCount uint64
 }
 
 func (m *memory) SetIFTimer() func() {
@@ -186,7 +187,7 @@ func (m *memory) loadROM(romData []byte) error {
 	return nil
 }
 
-func (m *memory) getReadMemBlock(addr uint16) types.ReadMemFunc {
+func (m *memory) getReadMemBlock(addr uint16, cycleCount uint64) types.ReadMemFunc {
 	if m.isBootLoaderLoaded && addr <= 0xff {
 		return m.read_boot_loader(addr)
 	} else if addr <= ROM_END {
@@ -204,7 +205,7 @@ func (m *memory) getReadMemBlock(addr uint16) types.ReadMemFunc {
 	} else if addr <= NU_END {
 		return m.ignore_io_read()
 	} else if addr <= IO_END {
-		return m.read_io(addr)
+		return m.read_io(addr, cycleCount)
 	} else if addr <= HRAM_END {
 		return m.read_hram(addr)
 	} else if addr == INTERRUPT_FLAG {
@@ -215,7 +216,7 @@ func (m *memory) getReadMemBlock(addr uint16) types.ReadMemFunc {
 	return nil
 }
 
-func (m *memory) getWriteMemBlock(addr uint16) types.WriteMemFunc {
+func (m *memory) getWriteMemBlock(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	if addr <= ROM_END {
 		return m.write_rom(addr)
 	} else if addr <= VRAM_END {
@@ -231,7 +232,7 @@ func (m *memory) getWriteMemBlock(addr uint16) types.WriteMemFunc {
 	} else if addr <= NU_END {
 		return m.ignore_io_write()
 	} else if addr <= IO_END {
-		return m.write_io(addr)
+		return m.write_io(addr, cycleCount)
 	} else if addr <= HRAM_END {
 		return m.write_hram(addr)
 	} else if addr == INTERRUPT_FLAG {
@@ -242,8 +243,8 @@ func (m *memory) getWriteMemBlock(addr uint16) types.WriteMemFunc {
 	return nil
 }
 
-func (m *memory) MemRead(addr uint16) *uint8 {
-	mem := m.getReadMemBlock(addr)
+func (m *memory) MemRead(addr uint16, cycleCount uint64) *uint8 {
+	mem := m.getReadMemBlock(addr, cycleCount)
 	if mem == nil {
 		// handle error
 		return nil
@@ -251,9 +252,9 @@ func (m *memory) MemRead(addr uint16) *uint8 {
 	return mem()
 }
 
-func (m *memory) MemWrite(addr uint16, val uint8) error {
+func (m *memory) MemWrite(addr uint16, val uint8, cycleCount uint64) error {
 	// m.lgr.Printf("Writing to: 0x%04x\n", addr)
-	mem := m.getWriteMemBlock(addr)
+	mem := m.getWriteMemBlock(addr, cycleCount)
 	if mem == nil {
 		return errors.New("End of memory reached")
 	}

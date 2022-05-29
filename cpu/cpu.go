@@ -7,6 +7,7 @@ import (
 
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
+	"github.com/ayushsherpa111/gameboyEMU/types"
 )
 
 const (
@@ -101,7 +102,7 @@ func (c *CPU) GetRegister(reg uint8) *uint8 {
 }
 
 func (c *CPU) ScheduleEI(cycles uint64) {
-	c.Scheduler.ScheduleEvent(c.SetIME(true), cycles)
+	c.Scheduler.ScheduleEvent(c.SetIME(true), cycles, types.EV_EI)
 }
 
 func (c *CPU) tick() {
@@ -116,7 +117,7 @@ func (c *CPU) Fetch() (uint8, error) {
 		c.memory.UnloadBootloader()
 		BOOTLOADER_UNLOADED = true
 	}
-	b := c.memory.MemRead(c.PC)
+	b := c.memory.MemRead(c.PC, c.CycleCount)
 	c.tick()
 
 	if b == nil {
@@ -134,14 +135,14 @@ func (c *CPU) Fetch16() uint16 {
 }
 
 func (c *CPU) SetMem(addr uint16, val uint8) {
-	if e := c.memory.MemWrite(addr, val); e != nil {
+	if e := c.memory.MemWrite(addr, val, c.CycleCount); e != nil {
 		log.Fatalf("Error setting byte in memory.")
 	}
 	c.tick()
 }
 
 func (c *CPU) GetMem(addr uint16) *uint8 {
-	return c.memory.MemRead(addr)
+	return c.memory.MemRead(addr, c.CycleCount)
 }
 
 func (c *CPU) combine(reg1, reg2 int) uint16 {
@@ -260,7 +261,7 @@ func (c *CPU) handleInterrupt() {
 	if !c.ime {
 		return
 	}
-	IE, IF := c.memory.MemRead(memory.INTERRUPT_ENABLE), c.memory.MemRead(memory.INTERRUPT_FLAG)
+	IE, IF := c.memory.MemRead(memory.INTERRUPT_ENABLE, c.CycleCount), c.memory.MemRead(memory.INTERRUPT_FLAG, c.CycleCount)
 	interrupt := *IE & *IF
 
 	if interrupt&0x0F >= 1 {

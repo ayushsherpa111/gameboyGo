@@ -1,8 +1,6 @@
 package memory
 
 import (
-	"fmt"
-
 	"github.com/ayushsherpa111/gameboyEMU/types"
 )
 
@@ -52,8 +50,7 @@ func (m *memory) ignore_io_write() types.WriteMemFunc {
 	}
 }
 
-// 0xFEFF
-func (m *memory) write_io(addr uint16) types.WriteMemFunc {
+func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	if _, ok := PPU_REGS[addr]; ok {
 		return func(val uint8) error {
 			return m.gpu.Write_Regs(addr, val)
@@ -63,18 +60,19 @@ func (m *memory) write_io(addr uint16) types.WriteMemFunc {
 	newAddr := addr - IO_START
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
-		switch addr {
-		case TIMA:
+		switch newAddr {
+		case TIMA - IO_START:
+			m.lastCycleCount = cycleCount
+
+			m.Scheduler.ClearEventType(types.EV_TIMER)
 			m.scheduleTimerEvents(u)
-		case TAC:
-			tima := m.ioRegs[TIMA-IO_START]
-			m.scheduleTimerEvents(tima)
+		case TAC - IO_START:
+			m.lastCycleCount = cycleCount
+
+			m.Scheduler.ClearEventType(types.EV_TIMER)
+			m.scheduleTimerEvents(m.ioRegs[TIMA-IO_START])
 		}
 
-		// only for debugging
-		if newAddr == 0x1 {
-			fmt.Printf("%c ", u)
-		}
 		return nil
 	}
 }
