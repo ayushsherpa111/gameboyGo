@@ -67,7 +67,7 @@ const (
 )
 
 const (
-	VBLANK_IF = 1 << iota
+	VBLANK_IF uint8 = 1 << iota
 	LCDS_IF
 	TIMER_IF
 	SERIAL_IF
@@ -118,9 +118,16 @@ type memory struct {
 	lastCycleCount uint64
 }
 
+func (m *memory) setIF(bit uint8) {
+	m.ioRegs[INTERRUPT_FLAG-IO_START] |= bit
+}
+
 func (m *memory) SetIFTimer() func() {
 	return func() {
-		m.ioRegs[INTERRUPT_FLAG-IO_START] |= TIMER_IF
+		m.setIF(TIMER_IF)
+		// INFO: Function is called once the timer reaches the cycle count where TIMA overflows.
+		// INFO: Assign TMA to TIMA when overflow occurs
+		m.ioRegs[TIMA-IO_START] = m.ioRegs[TMA-IO_START]
 	}
 }
 
@@ -235,8 +242,6 @@ func (m *memory) getWriteMemBlock(addr uint16, cycleCount uint64) types.WriteMem
 		return m.write_io(addr, cycleCount)
 	} else if addr <= HRAM_END {
 		return m.write_hram(addr)
-	} else if addr == INTERRUPT_FLAG {
-		return m.write_IF(addr)
 	} else if addr == INTERRUPT_ENABLE {
 		return m.write_IE(addr)
 	}

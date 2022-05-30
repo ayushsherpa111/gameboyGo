@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"fmt"
+
 	"github.com/ayushsherpa111/gameboyEMU/types"
 )
 
@@ -60,13 +62,21 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	newAddr := addr - IO_START
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
+
+		if newAddr == 0x0F {
+
+		}
+
 		switch newAddr {
 		case TIMA - IO_START:
+			fmt.Printf("TIMA : 0x%x\n", u)
 			m.lastCycleCount = cycleCount
 
 			m.Scheduler.ClearEventType(types.EV_TIMER)
 			m.scheduleTimerEvents(u)
 		case TAC - IO_START:
+			fmt.Printf("TAC: 0x%x\n", u)
+			m.ioRegs[TIMA-IO_START] += uint8((cycleCount - m.lastCycleCount) / m.getClockTiming())
 			m.lastCycleCount = cycleCount
 
 			m.Scheduler.ClearEventType(types.EV_TIMER)
