@@ -19,11 +19,11 @@ const (
 )
 
 var (
-	VB_VEC = 0x40
-	ST_VEC = 0x48
-	TM_VEC = 0x50
-	SE_VEC = 0x58
-	JP_VEC = 0x60
+	VB_VEC uint16 = 0x40
+	ST_VEC uint16 = 0x48
+	TM_VEC uint16 = 0x50
+	SE_VEC uint16 = 0x58
+	JP_VEC uint16 = 0x60
 )
 
 var BOOTLOADER_UNLOADED bool = false
@@ -117,8 +117,8 @@ func (c *CPU) Fetch() (uint8, error) {
 		c.memory.UnloadBootloader()
 		BOOTLOADER_UNLOADED = true
 	}
-	b := c.memory.MemRead(c.PC, c.CycleCount)
 	c.tick()
+	b := c.memory.MemRead(c.PC, c.CycleCount)
 
 	if b == nil {
 		return 0, errors.New("PC is pointing to an invalid address")
@@ -142,6 +142,7 @@ func (c *CPU) SetMem(addr uint16, val uint8) {
 }
 
 func (c *CPU) GetMem(addr uint16) *uint8 {
+	c.tick()
 	return c.memory.MemRead(addr, c.CycleCount)
 }
 
@@ -258,6 +259,7 @@ func isEnabled(inter uint8, bit uint8) bool {
 }
 
 func (c *CPU) handleInterrupt() {
+	fmt.Printf("IME: %v\n", c.ime)
 	if !c.ime {
 		return
 	}
@@ -272,22 +274,22 @@ func (c *CPU) handleInterrupt() {
 	switch {
 	case isEnabled(interrupt, V_BLANK):
 		*IF = clearBit(*IF, V_BLANK)
-		c.PC = uint16(VB_VEC)
+		c.PC = VB_VEC
 	case isEnabled(interrupt, LCD_STAT):
 		*IF = clearBit(*IF, LCD_STAT)
-		c.PC = uint16(VB_VEC)
+		c.PC = ST_VEC
 
 	case isEnabled(interrupt, TIMER):
 		*IF = clearBit(*IF, TIMER)
-		c.PC = uint16(VB_VEC)
+		c.PC = TM_VEC
 
 	case isEnabled(interrupt, SERIAL):
 		*IF = clearBit(*IF, SERIAL)
-		c.PC = uint16(VB_VEC)
+		c.PC = SE_VEC
 
 	case isEnabled(interrupt, JOYPAD):
 		*IF = clearBit(*IF, JOYPAD)
-		c.PC = uint16(VB_VEC)
+		c.PC = JP_VEC
 	}
 
 }

@@ -109,7 +109,6 @@ type memory struct {
 	wRAM           []uint8 // 0xC000 - 0xDFFF
 	hRAM           []uint8 // 0xFF80 - 0xFFFE
 	ioRegs         []uint8 // 0xFF00 - 0xFF70
-	IF             []uint8 // 0xFF0F
 	IE             []uint8 // 0xFFFF
 	lgr            logger.Logger
 	cart           interfaces.Cart
@@ -127,6 +126,7 @@ func (m *memory) SetIFTimer() func() {
 		m.setIF(TIMER_IF)
 		// INFO: Function is called once the timer reaches the cycle count where TIMA overflows.
 		// INFO: Assign TMA to TIMA when overflow occurs
+
 		m.ioRegs[TIMA-IO_START] = m.ioRegs[TMA-IO_START]
 	}
 }
@@ -164,7 +164,6 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*me
 		ioRegs:             make([]uint8, 128),
 		bootloader:         bootLoader,
 		rom:                ROM,
-		IF:                 make([]uint8, 1),
 		IE:                 make([]uint8, 1),
 		cart:               cartridge.NewCart(romData),
 		lgr:                logger.NewLogger(os.Stdout, debug, "Memory"),
@@ -172,7 +171,7 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*me
 	}
 	mem.cart.HeaderInfo()
 	mem.ioRegs[LY_REG-IO_START] = 0x90
-	gpu.RefInterruptFlag(mem.read_IF()())
+	gpu.RefInterruptFlag(&mem.ioRegs[INTERRUPT_FLAG-IO_START])
 
 	if e := mem.loadROM(romData); e != nil {
 		return nil, e
@@ -215,8 +214,6 @@ func (m *memory) getReadMemBlock(addr uint16, cycleCount uint64) types.ReadMemFu
 		return m.read_io(addr, cycleCount)
 	} else if addr <= HRAM_END {
 		return m.read_hram(addr)
-	} else if addr == INTERRUPT_FLAG {
-		return m.read_IF()
 	} else if addr == INTERRUPT_ENABLE {
 		return m.read_IE()
 	}

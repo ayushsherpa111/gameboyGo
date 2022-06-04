@@ -78,9 +78,3 @@ func (m *memory) read_IE() types.ReadMemFunc {
 		return &m.IE[0]
 	}
 }
-
-func (m *memory) read_IF() types.ReadMemFunc {
-	return func() *uint8 {
-		return &m.IF[0]
-	}
-}

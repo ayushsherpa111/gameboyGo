@@ -63,8 +63,8 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
 
-		if newAddr == 0x0F {
-
+		if newAddr == 0x04 {
+			m.ioRegs[newAddr] = 0
 		}
 
 		switch newAddr {
@@ -98,13 +98,6 @@ func (m *memory) write_hram(addr uint16) types.WriteMemFunc {
 func (m *memory) write_IE(addr uint16) types.WriteMemFunc {
 	return func(u uint8) error {
 		m.IE[0] = u
-		return nil
-	}
-}
-
-func (m *memory) write_IF(addr uint16) types.WriteMemFunc {
-	return func(u uint8) error {
-		m.IF[0] = u
 		return nil
 	}
 }
