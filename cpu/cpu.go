@@ -200,13 +200,14 @@ func hexVals(regs []uint8) string {
 func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 	// FETCH instruction
 	if !c.Halted {
-
 		inst, err := c.Fetch()
 		if err != nil {
 			return err
 		}
 
 		store[inst].Exec(inst)
+	} else {
+		c.CycleCount++
 	}
 
 	c.Scheduler.Tick()
@@ -264,7 +265,7 @@ func (c *CPU) handleInterrupt() {
 	IE, IF := c.memory.MemRead(memory.INTERRUPT_ENABLE, c.CycleCount), c.memory.MemRead(memory.INTERRUPT_FLAG, c.CycleCount)
 	interrupt := *IE & *IF
 
-	if interrupt != 0 {
+	if interrupt > 0 {
 		c.Halted = false
 	}
 

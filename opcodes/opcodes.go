@@ -108,8 +108,9 @@ func NewOpcodeStore(cpu *cpu.CPU) [0x100]instructions.Instruction {
 	for i := 0x40; i < 0x80; i++ {
 		if i == 0x76 {
 			opStore[i] = HALT
+		} else {
+			opStore[i] = LD
 		}
-		opStore[i] = LD
 	}
 
 	// 0x80 to 0xBF
