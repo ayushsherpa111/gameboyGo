@@ -69,7 +69,7 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 
 		switch newAddr {
 		case TIMA - IO_START:
-			fmt.Printf("TIMA : 0x%x\n", u)
+			fmt.Printf("TIMA : 0x%x CYCLE COUNT %d\n", u, cycleCount)
 			m.lastCycleCount = cycleCount
 
 			m.Scheduler.ClearEventType(types.EV_TIMER)

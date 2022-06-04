@@ -34,7 +34,7 @@ func NewOpcodeStore(cpu *cpu.CPU) [0x100]instructions.Instruction {
 	RST := NewRST(cpu)
 	DI := NewDI(cpu)
 	EI := NewEI(cpu)
-	HALT := NewHalt()
+	HALT := NewHalt(cpu)
 	CCF := NewCCF(cpu)
 
 	opStore := [0x100]instructions.Instruction{

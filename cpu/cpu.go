@@ -38,6 +38,7 @@ type CPU struct {
 	CloseChan  chan struct{}
 	CycleCount uint64
 	Scheduler  interfaces.Scheduler
+	Halted     bool
 }
 
 func NewCPU(mem interfaces.Mem) *CPU {
@@ -49,6 +50,7 @@ func NewCPU(mem interfaces.Mem) *CPU {
 		ime:        false,
 		CloseChan:  make(chan struct{}),
 		CycleCount: 0,
+		Halted:     false,
 	}
 }
 
@@ -106,7 +108,7 @@ func (c *CPU) ScheduleEI(cycles uint64) {
 }
 
 func (c *CPU) tick() {
-	c.CycleCount++ // 5028109
+	c.CycleCount += 4
 
 	// INFO: Tick PPU 4 times. [1 T cycle]
 	c.memory.TickAllComponents(c.CycleCount)
@@ -135,10 +137,10 @@ func (c *CPU) Fetch16() uint16 {
 }
 
 func (c *CPU) SetMem(addr uint16, val uint8) {
+	c.tick()
 	if e := c.memory.MemWrite(addr, val, c.CycleCount); e != nil {
 		log.Fatalf("Error setting byte in memory.")
 	}
-	c.tick()
 }
 
 func (c *CPU) GetMem(addr uint16) *uint8 {
@@ -197,15 +199,15 @@ func hexVals(regs []uint8) string {
 
 func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 	// FETCH instruction
-	inst, err := c.Fetch()
-	if err != nil {
-		return err
+	if !c.Halted {
+
+		inst, err := c.Fetch()
+		if err != nil {
+			return err
+		}
+
+		store[inst].Exec(inst)
 	}
-
-	// fmt.Printf("A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X SP: %04X PC: %04X \n",
-	// 	c.registers[A], c.registers[F], c.registers[B], c.registers[C], c.registers[D], c.registers[E], c.registers[H], c.registers[L], c.SP, c.PC-1)
-
-	store[inst].Exec(inst)
 
 	c.Scheduler.Tick()
 
@@ -259,12 +261,16 @@ func isEnabled(inter uint8, bit uint8) bool {
 }
 
 func (c *CPU) handleInterrupt() {
-	fmt.Printf("IME: %v\n", c.ime)
+	IE, IF := c.memory.MemRead(memory.INTERRUPT_ENABLE, c.CycleCount), c.memory.MemRead(memory.INTERRUPT_FLAG, c.CycleCount)
+	interrupt := *IE & *IF
+
+	if interrupt != 0 {
+		c.Halted = false
+	}
+
 	if !c.ime {
 		return
 	}
-	IE, IF := c.memory.MemRead(memory.INTERRUPT_ENABLE, c.CycleCount), c.memory.MemRead(memory.INTERRUPT_FLAG, c.CycleCount)
-	interrupt := *IE & *IF
 
 	if interrupt&0x0F >= 1 {
 		c.ime = false
