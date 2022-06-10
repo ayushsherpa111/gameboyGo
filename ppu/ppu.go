@@ -18,6 +18,14 @@ const (
 	LCD_STAT_VBLANK      uint8 = 0x01
 	LCD_STAT_OAM_RAM     uint8 = 0x02
 	LCD_STAT_DATA2DRIVER uint8 = 0x03
+	LCD_STAT_COINC       uint8 = 0x02 // R
+)
+
+const (
+	LCD_STAT_INT_COINC  uint8 = 0x40 // R/W
+	LCD_STAT_INT_OAM    uint8 = 0x20 // R/W
+	LCD_STAT_INT_VBLANK uint8 = 0x10 // R/W
+	LCD_STAT_INT_HBLANK uint8 = 0x08 // R/W
 )
 
 // compose buffer using the tileset and the vram
@@ -54,13 +62,6 @@ var V_RAM_START uint16 = 0x8000
 var LY_LYC_FLAG uint8 = 0x02
 
 const (
-	MODE_0 PPU_MODE = iota
-	MODE_1
-	MODE_2
-	MODE_3
-)
-
-const (
 	LCD_C = 0xFF40
 	LCD_S = 0xFF41
 	ScY   = 0xFF42 // Determines the Viewport Y coordinate
@@ -70,6 +71,11 @@ const (
 	Bgp   = 0xFF47
 	Wy    = 0xFF4A
 	Wx    = 0xFF4B
+)
+
+const (
+	V_BLANK_INT uint8 = 0x1
+	LCD_INT     uint8 = 0x2
 )
 
 // TODO: add a tile data addressing mode struct. To store base pointer and sign mode
@@ -153,28 +159,11 @@ func SetPx(x, y int, color uint32, buffer []uint32) {
 	buffer[newPX] = color
 }
 
-var (
-	sprites = [][]uint8{
-		{0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C},
-		{0x00, 0x00, 0x3c, 0x3c, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3c, 0x3c, 0x00, 0x00},
-		{0x00, 0x00, 0x18, 0x18, 0x38, 0x38, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3c, 0x3c, 0x00, 0x00},
-		{0x00, 0x00, 0x3c, 0x3c, 0x4e, 0x4e, 0x0e, 0x0e, 0x3c, 0x3c, 0x70, 0x70, 0x7e, 0x7e, 0x00, 0x00},
-		{0x00, 0x00, 0x7c, 0x7c, 0x0e, 0x0e, 0x3c, 0x3c, 0x0e, 0x0e, 0x0e, 0x0e, 0x7c, 0x7c, 0x00, 0x00},
-		{0x00, 0x00, 0x3c, 0x3c, 0x6c, 0x6c, 0x4c, 0x4c, 0x4e, 0x4e, 0x7e, 0x7e, 0x0c, 0x0c, 0x00, 0x00},
-		{0xff, 0xff, 0xff, 0x81, 0xc1, 0xbf, 0xc1, 0xbf, 0xc1, 0xbf, 0xc1, 0xbf, 0x81, 0xff, 0xff, 0xff},
-	}
-)
-
-func setLCDStatus(LCDS, setBit uint8) uint8 {
-	LCDS &= 0xFC
-	LCDS |= setBit
-	return LCDS
-}
-
 func (p *ppu) UpdateGPU() {
 	// TODO: Check if the PPU is currently in a V_BLANK mode before entering mode 0
 
 	lcd_c := &p.ppu_regs[parseIdx(LCD_C, PPU_BASE)]
+	lcd_s := &p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
 	lY := &p.ppu_regs[parseIdx(Ly, PPU_BASE)]
 	lYc := &p.ppu_regs[parseIdx(LyC, PPU_BASE)]
 	wY := &p.ppu_regs[parseIdx(Wy, PPU_BASE)]
@@ -188,8 +177,14 @@ func (p *ppu) UpdateGPU() {
 		*lY = 0
 		return
 	}
+
 	if *lY == *lYc {
 		*lYc |= LY_LYC_FLAG
+	} else {
+		*lYc &= ^LY_LYC_FLAG
+	}
+	if *lcd_s&LCD_STAT_INT_COINC != 0 {
+		p.setInterrupt(LCD_INT)
 	}
 
 	if p.dots >= 456 {
@@ -198,12 +193,13 @@ func (p *ppu) UpdateGPU() {
 		// checking for V_BLANK
 		if *lY >= 144 {
 			if *lY == 144 {
-				p.setInterrupt(0x01)
+				p.setInterrupt(V_BLANK_INT)
 			}
-			p.mode = MODE_1
+			*lcd_s = setMode(*lcd_s, LCD_STAT_VBLANK)
+			if *lcd_s&LCD_STAT_INT_VBLANK != 0 {
+				p.setInterrupt(LCD_INT)
+			}
 			// send frame buffer
-			// fmt.Println("V_BLANK")
-			*lYc = setLCDStatus(*lYc, LCD_STAT_VBLANK)
 			p.bufChan <- p.canvas_buffer[:]
 		}
 		// wrap LY
@@ -212,16 +208,22 @@ func (p *ppu) UpdateGPU() {
 	if *lY < 144 {
 		if p.dots == 80 {
 			// build sprite array from OAM
-			p.mode = MODE_2
-			*lYc = setLCDStatus(*lYc, LCD_STAT_OAM_RAM)
+			*lcd_s = setMode(*lcd_s, LCD_STAT_OAM_RAM)
+			if *lcd_s&LCD_STAT_INT_OAM != 0 {
+				p.setInterrupt(LCD_INT)
+			}
+			// *lYc = setLCDStatus(*lYc, LCD_STAT_OAM_RAM)
 			// p.fetchSprites()
 		} else if p.dots == (80 + 172) {
-			p.mode = MODE_3
-			*lYc = setLCDStatus(*lYc, LCD_STAT_DATA2DRIVER)
+			// *lYc = setLCDStatus(*lYc, LCD_STAT_DATA2DRIVER)
+			*lcd_s = setMode(*lcd_s, LCD_STAT_DATA2DRIVER)
 			p.scanLine(lcd_c, wY, scY, scX, lY, wX)
 		} else if p.dots == 80+172+204 {
-			p.mode = MODE_0
-			*lYc = setLCDStatus(*lYc, LCD_STAT_HBLANK)
+			*lcd_s = setMode(*lcd_s, LCD_STAT_HBLANK)
+			if *lcd_s&LCD_STAT_INT_HBLANK != 0 {
+				p.setInterrupt(LCD_INT)
+			}
+			// *lYc = setLCDStatus(*lYc, LCD_STAT_HBLANK)
 		}
 	}
 	p.dots++
@@ -321,11 +323,11 @@ func (p *ppu) scanLine(lcdc, wY, scY, scX, ly, wX *uint8) {
 		// draw either the background or the window
 		p.drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX)
 	}
-	// draw the sprites
 }
 
 func (p *ppu) Read_VRAM(addr uint16) *uint8 {
-	if p.mode == MODE_3 {
+	lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
+	if lcd_s&LCD_STAT_VBLANK != 0 {
 		return &defaultVal
 	}
 	return &p.vRAM[addr]
@@ -339,7 +341,8 @@ func constructPixel(low, high, bitNum uint8) uint32 {
 }
 
 func (p *ppu) Write_VRAM(addr uint16, val uint8) {
-	if p.mode == MODE_3 {
+	lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
+	if lcd_s&LCD_STAT_DATA2DRIVER != 0 {
 		// prevent CPU from writing to memory
 		return
 	}
@@ -351,7 +354,8 @@ func (p *ppu) Read_OAM(addr uint16) *uint8 {
 }
 
 func (p *ppu) Write_OAM(addr uint16, val uint8) {
-	if p.mode == MODE_2 {
+	lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
+	if lcd_s&LCD_STAT_OAM_RAM != 0 {
 		return
 	}
 	p.oam[addr] = val
@@ -380,8 +384,13 @@ func (p *ppu) setInterrupt(interrupt uint8) {
 }
 
 func (p *ppu) RefInterruptFlag(IF *uint8) {
-	// TODO: map the value to be only
 	p.IF = IF
+}
+
+func setMode(flag, mode uint8) uint8 {
+	flag &= 0xFC
+	flag |= mode
+	return flag
 }
 
 func parseIdx(idx uint16, baseAddr uint16) uint32 {
