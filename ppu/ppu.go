@@ -59,7 +59,7 @@ type PPU_MODE uint8
 
 var PPU_BASE uint16 = 0xFF40
 var V_RAM_START uint16 = 0x8000
-var LY_LYC_FLAG uint8 = 0x02
+var LY_LYC_FLAG uint8 = 0x04
 
 const (
 	LCD_C = 0xFF40
@@ -175,16 +175,18 @@ func (p *ppu) UpdateGPU() {
 		// LCD off
 		p.dots = 0
 		*lY = 0
+		*lcd_s = setMode(*lcd_s, LCD_STAT_HBLANK)
 		return
 	}
 
 	if *lY == *lYc {
-		*lYc |= LY_LYC_FLAG
+		*lcd_s |= LY_LYC_FLAG
+
+		if *lcd_s&LCD_STAT_INT_COINC != 0 {
+			p.setInterrupt(LCD_INT)
+		}
 	} else {
-		*lYc &= ^LY_LYC_FLAG
-	}
-	if *lcd_s&LCD_STAT_INT_COINC != 0 {
-		p.setInterrupt(LCD_INT)
+		*lcd_s &= ^LY_LYC_FLAG
 	}
 
 	if p.dots >= 456 {
@@ -312,6 +314,10 @@ func (p *ppu) scanLine(lcdc, wY, scY, scX, ly, wX *uint8) {
 		// draw either the background or the window
 		p.drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX)
 	}
+
+	if *lcdc&OBJ_ENABLE == OBJ_ENABLE {
+
+	}
 }
 
 func (p *ppu) Read_VRAM(addr uint16) *uint8 {
@@ -356,10 +362,12 @@ func (p *ppu) Read_Regs(regAddr uint16) *uint8 {
 }
 
 func (p *ppu) Write_Regs(regAddr uint16, val uint8) error {
+
 	newIdx := parseIdx(regAddr, PPU_BASE)
 	if int(newIdx) > len(p.ppu_regs) {
 		return errors.New(fmt.Sprintf("Invalid memory address %X\n", regAddr))
 	}
+
 	p.ppu_regs[newIdx] = val
 	return nil
 }
