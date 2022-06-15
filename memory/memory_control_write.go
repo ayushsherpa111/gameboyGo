@@ -52,11 +52,27 @@ func (m *memory) ignore_io_write() types.WriteMemFunc {
 	}
 }
 
+func (m *memory) handleDMA(cycleCount uint64) types.WriteMemFunc {
+	return func(u uint8) error {
+		var shiftedData uint16 = uint16(u) << 8
+		var i uint16
+		for i = 0; i < 0xA0; i++ {
+			val := m.getReadMemBlock(uint16(shiftedData+i), cycleCount)()
+			m.write_oam(uint16(OAM_START + i))(*val)
+		}
+		return nil
+	}
+}
+
 func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	if _, ok := PPU_REGS[addr]; ok {
 		return func(val uint8) error {
 			return m.gpu.Write_Regs(addr, val)
 		}
+	}
+
+	if addr == DMA {
+		return m.handleDMA(cycleCount)
 	}
 
 	newAddr := addr - IO_START

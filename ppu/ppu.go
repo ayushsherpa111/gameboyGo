@@ -240,17 +240,6 @@ func (p *ppu) getSlice(start, end uint16) []uint8 {
 	return p.vRAM[newStart : newEnd+1]
 }
 
-func WhiteOut(buf []uint32, spriteArr []uint8, xcoord int) {
-	yCoord := 0
-	for i := 0; i < len(spriteArr)-1; i += 2 {
-		tile := ParsePx(spriteArr[i], spriteArr[i+1])
-		for j := 0; j < 8; j++ {
-			SetPx(j+(xcoord*8), yCoord, tile[j], buf)
-		}
-		yCoord += 1
-	}
-}
-
 func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 	var tileYpos uint8
 	var winBgTileData []uint8

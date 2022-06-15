@@ -43,6 +43,7 @@ const (
 
 	OAM_START = 0xFE00
 	OAM_END   = 0xFE9F
+	DMA       = 0xFE46
 
 	HRAM_START = 0xFF80
 	HRAM_END   = 0xFFFE
@@ -255,7 +256,6 @@ func (m *memory) MemRead(addr uint16, cycleCount uint64) *uint8 {
 }
 
 func (m *memory) MemWrite(addr uint16, val uint8, cycleCount uint64) error {
-	// m.lgr.Printf("Writing to: 0x%04x\n", addr)
 	mem := m.getWriteMemBlock(addr, cycleCount)
 	if mem == nil {
 		return errors.New("End of memory reached")
