@@ -101,7 +101,7 @@ type oam struct {
 type ppu struct {
 	vRAM          []uint8
 	oam           []uint8
-	oam_entries   [40]oam
+	oam_entries   [10]oam
 	canvas_buffer [BUF_X * BUF_Y]uint32
 	lgr           logger.Logger
 	// background    [BG_SET_X][BG_SET_Y]uint8
@@ -121,7 +121,7 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 	p := &ppu{
 		vRAM:          make([]uint8, 8*1024),
 		oam:           make([]uint8, 160),
-		oam_entries:   [40]oam{},
+		oam_entries:   [10]oam{},
 		lgr:           logger.NewLogger(os.Stdout, true, "PPU"),
 		canvas_buffer: [BUF_X * BUF_Y]uint32{},
 		ppu_regs:      make([]uint8, 12),
@@ -131,9 +131,31 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 	return p
 }
 
-// TODO: implement OAM fetch mode
-func (p *ppu) fetchSprites() {
+func (p *ppu) SortOAM() {
+	for i := 0; i < len(p.oam_entries); i++ {
+		for j := i + 1; j < len(p.oam_entries); j++ {
+			if p.oam_entries[i].xPOS > p.oam_entries[j].xPOS {
+				p.oam_entries[i], p.oam_entries[j] = p.oam_entries[j], p.oam_entries[i]
+			}
+		}
+	}
+}
 
+func (p *ppu) fetchSprites(ly uint8) {
+	spriteCount := 0
+	for i := 0; i < len(p.oam) && spriteCount < 10; i += 4 {
+		newOAM := oam{
+			yPOS:    p.oam[i],
+			xPOS:    p.oam[i+1],
+			tileIdx: p.oam[i+2],
+			flags:   p.oam[i+3],
+		}
+		if newOAM.yPOS <= ly && newOAM.yPOS+8 <= ly {
+			p.oam_entries[spriteCount] = newOAM
+			spriteCount++
+		}
+	}
+	p.SortOAM()
 }
 
 func (p *ppu) PrintDetails() {
@@ -204,7 +226,6 @@ func (p *ppu) UpdateGPU() {
 			// send frame buffer
 			p.bufChan <- p.canvas_buffer[:]
 		}
-		// wrap LY
 	}
 
 	if *lY < 144 {
@@ -214,18 +235,15 @@ func (p *ppu) UpdateGPU() {
 			if *lcd_s&LCD_STAT_INT_OAM != 0 {
 				p.setInterrupt(LCD_INT)
 			}
-			// *lYc = setLCDStatus(*lYc, LCD_STAT_OAM_RAM)
-			// p.fetchSprites()
+			p.fetchSprites(*lY)
 		} else if p.dots == (80 + 172) {
-			// *lYc = setLCDStatus(*lYc, LCD_STAT_DATA2DRIVER)
 			*lcd_s = setMode(*lcd_s, LCD_STAT_DATA2DRIVER)
-			p.scanLine(lcd_c, wY, scY, scX, lY, wX)
+			p.scanLine(lcd_c, wY, wX, scY, scX, lY)
 		} else if p.dots == 80+172+204 {
 			*lcd_s = setMode(*lcd_s, LCD_STAT_HBLANK)
 			if *lcd_s&LCD_STAT_INT_HBLANK != 0 {
 				p.setInterrupt(LCD_INT)
 			}
-			// *lYc = setLCDStatus(*lYc, LCD_STAT_HBLANK)
 		}
 	}
 	p.dots++
@@ -242,7 +260,7 @@ func (p *ppu) getSlice(start, end uint16) []uint8 {
 	return p.vRAM[newStart : newEnd+1]
 }
 
-func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
+func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX *uint8) {
 	var tileYpos uint8
 	var winBgTileData []uint8
 	var signed bool
@@ -257,7 +275,7 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 		} else {
 			bgWinMap = p.getSlice(0x9800, 0x9BFF)
 		}
-		tileYpos = *ly - (*wY)
+		tileYpos = *ly - *wY
 	} else {
 		if *lcdc&BG_TILE_MAP == BG_TILE_MAP {
 			bgWinMap = p.getSlice(0x9C00, 0x9FFF)
@@ -307,16 +325,20 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX *uint8) {
 	}
 }
 
-func (p *ppu) scanLine(lcdc, wY, scY, scX, ly, wX *uint8) {
+func (p *ppu) drawObjects() {
+
+}
+
+func (p *ppu) scanLine(lcdc, wY, wX, scY, scX, ly *uint8) {
 	// render Background
 	// p.lgr.Printf("Scanline started %d\n", *ly)
 	if *lcdc&BG_WIN_ENABLE == BG_WIN_ENABLE {
 		// draw either the background or the window
-		p.drawBackgroundAndWin(lcdc, ly, wY, scY, scX, wX)
+		p.drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX)
 	}
 
 	if *lcdc&OBJ_ENABLE == OBJ_ENABLE {
-
+		p.drawObjects()
 	}
 }
 
