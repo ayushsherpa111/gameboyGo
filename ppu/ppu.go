@@ -59,7 +59,6 @@ type PPU_MODE uint8
 
 var PPU_BASE uint16 = 0xFF40
 var V_RAM_START uint16 = 0x8000
-var LY_LYC_FLAG uint8 = 0x04
 
 const (
 	LCD_C = 0xFF40
@@ -202,13 +201,13 @@ func (p *ppu) UpdateGPU() {
 	}
 
 	if *lY == *lYc {
-		*lcd_s |= LY_LYC_FLAG
+		*lcd_s |= LCD_STAT_COINC
 
 		if *lcd_s&LCD_STAT_INT_COINC != 0 {
 			p.setInterrupt(LCD_INT)
 		}
 	} else {
-		*lcd_s &= ^LY_LYC_FLAG
+		*lcd_s &= ^LCD_STAT_COINC
 	}
 
 	if p.dots >= 456 {
@@ -235,7 +234,7 @@ func (p *ppu) UpdateGPU() {
 			if *lcd_s&LCD_STAT_INT_OAM != 0 {
 				p.setInterrupt(LCD_INT)
 			}
-			// p.fetchSprites(*lY)
+			p.fetchSprites(*lY)
 		} else if p.dots == (80 + 172) {
 			*lcd_s = setMode(*lcd_s, LCD_STAT_DATA2DRIVER)
 			p.scanLine(lcd_c, wY, wX, scY, scX, lY)
