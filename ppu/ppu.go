@@ -18,7 +18,7 @@ const (
 	LCD_STAT_VBLANK      uint8 = 0x01
 	LCD_STAT_OAM_RAM     uint8 = 0x02
 	LCD_STAT_DATA2DRIVER uint8 = 0x03
-	LCD_STAT_COINC       uint8 = 0x02 // R
+	LCD_STAT_COINC       uint8 = 0x04 // R
 )
 
 const (
