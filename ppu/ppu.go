@@ -235,7 +235,7 @@ func (p *ppu) UpdateGPU() {
 			if *lcd_s&LCD_STAT_INT_OAM != 0 {
 				p.setInterrupt(LCD_INT)
 			}
-			p.fetchSprites(*lY)
+			// p.fetchSprites(*lY)
 		} else if p.dots == (80 + 172) {
 			*lcd_s = setMode(*lcd_s, LCD_STAT_DATA2DRIVER)
 			p.scanLine(lcd_c, wY, wX, scY, scX, lY)
@@ -326,7 +326,7 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX *uint8) {
 }
 
 func (p *ppu) drawObjects() {
-
+	p.lgr.Printf("DRAW SPRITES")
 }
 
 func (p *ppu) scanLine(lcdc, wY, wX, scY, scX, ly *uint8) {

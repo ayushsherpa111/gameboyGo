@@ -12,7 +12,6 @@ type halt struct {
 
 func (h *halt) Exec(opcode byte) {
 	h.c.Halted = true
-	h.c.PC++
 	fmt.Println("HALTED")
 }
 
