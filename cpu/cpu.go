@@ -201,13 +201,16 @@ func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 	// FETCH instruction
 	if !c.Halted {
 		inst, err := c.Fetch()
+		// fmt.Printf("PC: 0x%02x OP:0x%02x Registers: %s Flag: 0b%04b\n", c.PC-1, inst, hexVals(c.registers[:]), c.registers[F]>>4)
 		if err != nil {
 			return err
 		}
 
 		store[inst].Exec(inst)
 	} else {
-		c.CycleCount++
+		// c.CycleCount++
+		c.tick()
+		// fmt.Printf("cycle count %d\n", c.CycleCount)
 	}
 
 	c.Scheduler.Tick()

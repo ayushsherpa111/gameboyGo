@@ -54,7 +54,7 @@ func main() {
 	cpu := cpu.NewCPU(mem)
 	sched := scheduler.NewScheduler(cpu)
 	cpu.Scheduler = sched
-	mem.Scheduler = sched
+	mem.SetScheduler(sched)
 
 	frontend.SetupWindow()
 	frontend.EmuWindow.SetChannels(bufferChan, inputChan)

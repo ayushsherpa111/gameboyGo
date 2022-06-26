@@ -2,7 +2,7 @@ package memory
 
 import "github.com/ayushsherpa111/gameboyEMU/types"
 
-func (m *memory) scheduleTimerEvents(timerVal uint8) {
+func (m *memory) scheduleTimerEvents(timerVal uint8, cycleCount uint64) {
 	tac_addr := TAC - IO_START
 	if (m.ioRegs[tac_addr] & TIMER_ENABLE) == TIMER_ENABLE {
 		// schedule events
@@ -17,7 +17,7 @@ func (m *memory) scheduleTimerEvents(timerVal uint8) {
 		case 0x03:
 			timerCycle = (0xFF - uint64(timerVal)) * 256
 		}
-		m.Scheduler.ScheduleEvent(m.SetIFTimer(), timerCycle, types.EV_TIMER)
+		m.Scheduler.ScheduleEvent(m.SetIFTimer(cycleCount), timerCycle, types.EV_TIMER)
 	}
 }
 

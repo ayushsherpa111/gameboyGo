@@ -57,6 +57,13 @@ const (
 
 type PPU_MODE uint8
 
+const (
+	MODE_0 PPU_MODE = iota
+	MODE_1
+	MODE_2
+	MODE_3
+)
+
 var PPU_BASE uint16 = 0xFF40
 var V_RAM_START uint16 = 0x8000
 
@@ -197,6 +204,7 @@ func (p *ppu) UpdateGPU() {
 		p.dots = 0
 		*lY = 0
 		*lcd_s = setMode(*lcd_s, LCD_STAT_HBLANK)
+		p.mode = MODE_0
 		return
 	}
 
@@ -210,43 +218,44 @@ func (p *ppu) UpdateGPU() {
 		*lcd_s &= ^LCD_STAT_COINC
 	}
 
-	if p.dots >= 456 {
-		*lY++
-		*lY %= 154
-		// checking for V_BLANK
-		if *lY >= 144 {
-			if *lY == 144 {
-				p.setInterrupt(V_BLANK_INT)
-			}
-			*lcd_s = setMode(*lcd_s, LCD_STAT_VBLANK)
-			if *lcd_s&LCD_STAT_INT_VBLANK != 0 {
-				p.setInterrupt(LCD_INT)
-			}
-			// send frame buffer
-			p.bufChan <- p.canvas_buffer[:]
-		}
-	}
-
 	if *lY < 144 {
 		if p.dots == 80 {
 			// build sprite array from OAM
 			*lcd_s = setMode(*lcd_s, LCD_STAT_OAM_RAM)
+			p.mode = MODE_2
 			if *lcd_s&LCD_STAT_INT_OAM != 0 {
 				p.setInterrupt(LCD_INT)
 			}
 			p.fetchSprites(*lY)
 		} else if p.dots == (80 + 172) {
 			*lcd_s = setMode(*lcd_s, LCD_STAT_DATA2DRIVER)
+			p.mode = MODE_3
 			p.scanLine(lcd_c, wY, wX, scY, scX, lY)
 		} else if p.dots == 80+172+204 {
 			*lcd_s = setMode(*lcd_s, LCD_STAT_HBLANK)
+			p.mode = MODE_0
 			if *lcd_s&LCD_STAT_INT_HBLANK != 0 {
 				p.setInterrupt(LCD_INT)
 			}
 		}
+	} else if *lY == 144 && p.dots == 0 {
+		// checking for V_BLANK
+		*lcd_s = setMode(*lcd_s, LCD_STAT_VBLANK)
+		p.mode = MODE_1
+		p.setInterrupt(V_BLANK_INT)
+		if *lcd_s&LCD_STAT_INT_VBLANK != 0 {
+			p.setInterrupt(LCD_INT)
+		}
+		// send frame buffer
+		p.bufChan <- p.canvas_buffer[:]
 	}
+
 	p.dots++
-	p.dots = p.dots % 457
+	if p.dots == 456 {
+		*lY++
+		*lY %= 153
+		p.dots = 0
+	}
 }
 
 func (p *ppu) getSlice(start, end uint16) []uint8 {
@@ -257,6 +266,59 @@ func (p *ppu) getSlice(start, end uint16) []uint8 {
 	newStart := parseIdx(start, V_RAM_START)
 	newEnd := parseIdx(end, V_RAM_START)
 	return p.vRAM[newStart : newEnd+1]
+}
+
+func (p *ppu) drawBackground(lcdc, ly, wY, wX, scY, scX *uint8) {
+	var tileYpos uint8
+	var bgData []uint8
+	var signed bool
+	var bgMap []uint8
+
+	if *lcdc&BG_TILE_MAP == BG_TILE_MAP {
+		bgMap = p.getSlice(0x9C00, 0x9FFF)
+	} else {
+		bgMap = p.getSlice(0x9800, 0x9BFF)
+	}
+	tileYpos = *ly + *scY
+
+	if *lcdc&BG_WIN_DATA == BG_WIN_DATA {
+		bgData = p.getSlice(0x8000, 0x8FFF)
+	} else {
+		bgData = p.getSlice(0x8800, 0x97FF)
+		signed = true
+	}
+
+	var x uint8
+
+	for idx := byte(0); idx < BUF_X; idx += 8 {
+		x = idx + *scX
+
+		var tileNum uint16 = ((uint16(tileYpos) / 8) * 32) + (uint16(x) / 8) // convert PX value to tile number
+		tileIDX := bgMap[tileNum]                                            // tile number that is supposed to be drawn
+		var tileDataAddr uint16
+		// fetch the tile from tile dataset
+		if signed {
+			//  0x8800 + tileDataAddr
+			tileDataAddr = uint16(int16(int8(tileIDX))+128) * 16 // by adding 128 you map -128 -> 0
+		} else {
+			// 0x8000 + tileDataAddr
+			tileDataAddr = uint16(tileIDX) * 16
+		}
+		// tileDataAddr points to the first byte of the tile. a tile contains 16 byte (each line of the tile is made up of 2 bytes).
+		// Next we find out which line of the current tile are we on
+		tileDataY := uint16(uint8(tileYpos%8) * 2)
+		low := bgData[tileDataAddr+tileDataY]
+		high := bgData[tileDataAddr+tileDataY+1]
+
+		for i := uint8(0); i < 8; i++ {
+			idxCoord := BUF_X*uint(*ly) + uint(idx) + uint(i)
+			p.canvas_buffer[idxCoord] = constructPixel(low, high, 7-i)
+		}
+	}
+
+}
+
+func (p *ppu) drawWindow(lcdc, ly, wY, wX, scY, scX *uint8) {
 }
 
 func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX *uint8) {
@@ -333,7 +395,8 @@ func (p *ppu) scanLine(lcdc, wY, wX, scY, scX, ly *uint8) {
 	// p.lgr.Printf("Scanline started %d\n", *ly)
 	if *lcdc&BG_WIN_ENABLE == BG_WIN_ENABLE {
 		// draw either the background or the window
-		p.drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX)
+		// p.drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX)
+		p.drawBackground(lcdc, ly, wY, wX, scY, scX)
 	}
 
 	if *lcdc&OBJ_ENABLE == OBJ_ENABLE {
@@ -342,8 +405,8 @@ func (p *ppu) scanLine(lcdc, wY, wX, scY, scX, ly *uint8) {
 }
 
 func (p *ppu) Read_VRAM(addr uint16) *uint8 {
-	lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
-	if lcd_s&LCD_STAT_VBLANK != 0 {
+	// lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
+	if p.mode == MODE_3 {
 		return &defaultVal
 	}
 	return &p.vRAM[addr]
@@ -357,8 +420,8 @@ func constructPixel(low, high, bitNum uint8) uint32 {
 }
 
 func (p *ppu) Write_VRAM(addr uint16, val uint8) {
-	lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
-	if lcd_s&LCD_STAT_DATA2DRIVER != 0 {
+	// lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
+	if p.mode == MODE_3 {
 		// prevent CPU from writing to memory
 		return
 	}
@@ -366,12 +429,16 @@ func (p *ppu) Write_VRAM(addr uint16, val uint8) {
 }
 
 func (p *ppu) Read_OAM(addr uint16) *uint8 {
+	if p.mode == MODE_2 {
+		return &defaultVal
+	}
 	return &p.oam[addr]
 }
 
 func (p *ppu) Write_OAM(addr uint16, val uint8) {
-	lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
-	if lcd_s&LCD_STAT_OAM_RAM != 0 {
+	// compare lcd_s to mode bits (last 2 bits)
+	// lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
+	if p.mode == MODE_2 {
 		return
 	}
 	p.oam[addr] = val

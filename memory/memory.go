@@ -122,13 +122,15 @@ func (m *memory) setIF(bit uint8) {
 	m.ioRegs[INTERRUPT_FLAG-IO_START] |= bit
 }
 
-func (m *memory) SetIFTimer() func() {
+func (m *memory) SetIFTimer(sc uint64) func() {
 	return func() {
 		m.setIF(TIMER_IF)
 		// INFO: Function is called once the timer reaches the cycle count where TIMA overflows.
 		// INFO: Assign TMA to TIMA when overflow occurs
 
-		m.ioRegs[TIMA-IO_START] = m.ioRegs[TMA-IO_START]
+		// m.ioRegs[TIMA-IO_START] = m.ioRegs[TMA-IO_START]
+		m.MemWrite(TIMA, m.ioRegs[TMA-IO_START], sc)
+		// m.scheduleTimerEvents(m.ioRegs[TIMA-IO_START])
 	}
 }
 
@@ -179,6 +181,10 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*me
 	}
 
 	return mem, nil
+}
+
+func (m *memory) SetScheduler(sched interfaces.Scheduler) {
+	m.Scheduler = sched
 }
 
 func (m *memory) loadROM(romData []byte) error {

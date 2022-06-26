@@ -92,14 +92,14 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 			m.lastCycleCount = cycleCount
 
 			m.Scheduler.ClearEventType(types.EV_TIMER)
-			m.scheduleTimerEvents(u)
+			m.scheduleTimerEvents(u, cycleCount)
 		case TAC - IO_START:
 			fmt.Printf("TAC: 0x%x\n", u)
 			m.ioRegs[TIMA-IO_START] += uint8((cycleCount - m.lastCycleCount) / m.getClockTiming())
 			m.lastCycleCount = cycleCount
 
 			m.Scheduler.ClearEventType(types.EV_TIMER)
-			m.scheduleTimerEvents(m.ioRegs[TIMA-IO_START])
+			m.scheduleTimerEvents(m.ioRegs[TIMA-IO_START], cycleCount)
 		}
 
 		return nil
