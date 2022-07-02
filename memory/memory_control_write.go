@@ -78,9 +78,6 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	newAddr := addr - IO_START
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
-		if newAddr == 0x1 {
-			fmt.Printf("%c ", u)
-		}
 
 		if newAddr == 0x04 {
 			m.ioRegs[newAddr] = 0
