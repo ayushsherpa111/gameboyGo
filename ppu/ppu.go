@@ -158,6 +158,7 @@ func (p *ppu) fetchSprites(ly uint8) {
 			tileIdx: p.oam[i+2],
 			flags:   p.oam[i+3],
 		}
+
 		if newOAM.yPOS <= ly && newOAM.yPOS+8 <= ly {
 			p.oam_entries[spriteCount] = newOAM
 			spriteCount++
@@ -272,12 +273,6 @@ func (p *ppu) getSlice(start, end uint16) []uint8 {
 	newEnd := parseIdx(end, V_RAM_START)
 	return p.vRAM[newStart : newEnd+1]
 }
-
-func (p *ppu) drawWindow(lcdc, ly, wY, wX, scY, scX *uint8) {
-}
-
-// var tileNum uint16 = ((uint16(y) / 8) * 32) + (uint16(x) / 8) // convert PX value to tile number
-// tileIDX := bgWinMap[tileNum]                                  // tile number that is supposed to be drawn
 
 func (p *ppu) getTileMap(lcdc, lY, scY, scX, wY, wX, idx uint8) (uint8, uint8, bool) {
 	var tileMap []uint8
