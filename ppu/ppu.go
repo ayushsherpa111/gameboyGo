@@ -8,9 +8,9 @@ import (
 	"github.com/ayushsherpa111/gameboyEMU/logger"
 )
 
-type tilePixelValue struct {
-	low  uint8
-	high uint8
+type pixel struct {
+	colorIndex uint8
+	pallete    uint8
 }
 
 const (
@@ -38,11 +38,19 @@ const (
 	BG_SET_Y = 32
 )
 
-var pallete = []uint32{0xFFFFFFFF,
+var colorPallete = []uint32{
+	0xFFFFFFFF,
 	0x44444444,
 	0xAAAAAAAA,
 	0x00000000,
 }
+
+const (
+	BG_WIN_OVER = 1 << 7
+	YFLIP       = 1 << 6
+	XFLIP       = 1 << 5
+	PALETTE_NUM = 1 << 4
+)
 
 const (
 	BG_WIN_ENABLE uint8 = 0x1 << iota
@@ -74,7 +82,9 @@ const (
 	ScX   = 0xFF43 // Determines the Viewport X coordinate
 	Ly    = 0xFF44
 	LyC   = 0xFF45
-	Bgp   = 0xFF47
+	BGP   = 0xFF47
+	OBP0  = 0xFF48
+	OBP1  = 0xFF49
 	Wy    = 0xFF4A
 	Wx    = 0xFF4B
 )
@@ -88,9 +98,25 @@ const (
 
 // INFO: BG map contains number denoting index on where tile data should be added.
 
+type oam_flag struct {
+	BG_WIN_OVR_OBJ bool
+	yFlip          bool
+	xFlip          bool
+	palleteNum     uint16
+}
+
 type oam struct {
-	yPOS    uint8 // byte 1
-	xPOS    uint8 // byte 2
+	/*
+		The y Position of where the sprite should be
+	*/
+	yPOS uint8 // byte 1
+	/*
+		The x Position of where the sprite should be
+	*/
+	xPOS uint8 // byte 2
+	/*
+		Tile index number.
+	*/
 	tileIdx uint8 // byte 3
 
 	/*
@@ -101,7 +127,7 @@ type oam struct {
 	 Bit3   Tile VRAM-Bank  **CGB Mode Only**     (0=Bank 0, 1=Bank 1)
 	 Bit2-0 Palette number  **CGB Mode Only**     (OBP0-7)
 	*/
-	flags uint8 // byte 4
+	flags oam_flag // byte 4
 }
 
 type ppu struct {
@@ -121,6 +147,7 @@ type ppu struct {
 	bufChan       chan<- []uint32
 	IF            *uint8
 	hasCoincFired bool
+	spriteCount   uint8
 }
 
 var defaultVal uint8 = 0xFF
@@ -140,8 +167,8 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 }
 
 func (p *ppu) SortOAM() {
-	for i := 0; i < len(p.oam_entries); i++ {
-		for j := i + 1; j < len(p.oam_entries); j++ {
+	for i := 0; i < int(p.spriteCount); i++ {
+		for j := i + 1; j < int(p.spriteCount); j++ {
 			if p.oam_entries[i].xPOS > p.oam_entries[j].xPOS {
 				p.oam_entries[i], p.oam_entries[j] = p.oam_entries[j], p.oam_entries[i]
 			}
@@ -149,19 +176,42 @@ func (p *ppu) SortOAM() {
 	}
 }
 
-func (p *ppu) fetchSprites(ly uint8) {
-	spriteCount := 0
-	for i := 0; i < len(p.oam) && spriteCount < 10; i += 4 {
+func (p *ppu) parseOAMFlag(flag uint8) oam_flag {
+	var palletNum uint16
+
+	if (flag & PALETTE_NUM) != 0 {
+		palletNum = OBP1 // p.ppu_regs[parseIdx(, PPU_BASE)]
+	} else {
+		palletNum = OBP0 // p.ppu_regs[parseIdx(OBP0, PPU_BASE)]
+	}
+
+	return oam_flag{
+		BG_WIN_OVR_OBJ: (flag & BG_WIN_OVER) != 0,
+		yFlip:          (flag & YFLIP) != 0,
+		xFlip:          (flag & XFLIP) != 0,
+		palleteNum:     palletNum,
+	}
+}
+
+func (p *ppu) fetchSprites(ly uint8, lcdc uint8) {
+	p.spriteCount = 0
+	var spriteHeight uint8
+	for i := 0; i < len(p.oam) && p.spriteCount < 10; i += 4 {
 		newOAM := oam{
 			yPOS:    p.oam[i],
 			xPOS:    p.oam[i+1],
 			tileIdx: p.oam[i+2],
-			flags:   p.oam[i+3],
+			flags:   p.parseOAMFlag(p.oam[i+3]),
+		}
+		if lcdc&OBJ_SIZE != 0 {
+			spriteHeight = 16
+		} else {
+			spriteHeight = 8
 		}
 
-		if newOAM.yPOS <= ly && newOAM.yPOS+8 <= ly {
-			p.oam_entries[spriteCount] = newOAM
-			spriteCount++
+		if newOAM.xPOS > 0 && ly+16 >= newOAM.yPOS && ly+16 < newOAM.yPOS+spriteHeight {
+			p.oam_entries[p.spriteCount] = newOAM
+			p.spriteCount++
 		}
 	}
 	p.SortOAM()
@@ -174,15 +224,6 @@ func (p *ppu) PrintDetails() {
 	}
 	fmt.Fprintf(file, "%v", p.vRAM)
 	p.lgr.Infof(" LCDC: 0x%x\n", p.ppu_regs[parseIdx(LCD_C, PPU_BASE)])
-}
-
-func ParsePx(low, high uint8) []uint32 {
-	tileRow := make([]uint32, 8)
-	for i := 7; i >= 0; i-- {
-		bitlow, bitHigh := (low&(0x1<<i))>>i, (high&(0x1<<i))>>i
-		tileRow[7-i] = pallete[bitHigh<<1|bitlow]
-	}
-	return tileRow
 }
 
 func SetPx(x, y int, color uint32, buffer []uint32) {
@@ -229,7 +270,7 @@ func (p *ppu) UpdateGPU() {
 			if *lcd_s&LCD_STAT_INT_OAM != 0 {
 				p.setInterrupt(LCD_INT)
 			}
-			p.fetchSprites(*lY)
+			p.fetchSprites(*lY, *lcd_c)
 
 		} else if p.dots == (80 + 172) {
 			*lcd_s = setMode(*lcd_s, LCD_STAT_DATA2DRIVER)
@@ -303,10 +344,9 @@ func (p *ppu) getTileMap(lcdc, lY, scY, scX, wY, wX, idx uint8) (uint8, uint8, b
 	return tileMap[tileNum], (uint8(y) % 8) * 2, isDrawing
 }
 
-func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX *uint8) {
+func (p *ppu) drawBackgroundAndWin(pixelBuffer []pixel, lcdc, ly, wY, wX, scY, scX *uint8) {
 	var bgTileData []uint8
 	var signed bool
-	var pixelBuffer []uint32 = make([]uint32, 168)
 
 	if *lcdc&BG_WIN_DATA == BG_WIN_DATA {
 		bgTileData = p.getSlice(0x8000, 0x8FFF)
@@ -316,6 +356,7 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX *uint8) {
 	}
 
 	var tempBool bool
+	shift := *scX % 8
 
 	for idx := byte(0); idx < BUF_X+8; idx += 8 {
 		tileIDX, offset, isDrawing := p.getTileMap(*lcdc, *ly, *scY, *scX, *wY, *wX, idx)
@@ -340,8 +381,8 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX *uint8) {
 		high := bgTileData[tileDataAddr+uint16(offset)+1]
 
 		for i := uint8(0); i < 8; i++ {
-			idxCoord := uint(idx) + uint(i)
-			pixelBuffer[idxCoord] = constructPixel(low, high, 7-i)
+			idxCoord := uint(idx) + uint(i) - uint(shift)
+			pixelBuffer[idxCoord+8] = p.constructBGWinPixel(low, high, 7-i)
 		}
 	}
 
@@ -349,43 +390,127 @@ func (p *ppu) drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX *uint8) {
 		p.winLY++
 	}
 
-	startIDX := *scX % 8
-	for i := uint(0); i < BUF_X; i++ {
-		p.canvas_buffer[i+BUF_X*uint(*ly)] = pixelBuffer[startIDX+uint8(i)]
-	}
 }
 
-func (p *ppu) drawObjects() {
-	// p.lgr.Printf("DRAW SPRITES")
+func (p *ppu) drawSprites(pixelBuffer []pixel, lcdc, ly uint8) {
+	spriteTileData := p.getSlice(0x8000, 0x8FFF)
+	var bitPos uint8
+	var tileIDX uint16
+
+	for i := 0; i < int(p.spriteCount); i++ {
+		var offset uint16
+		var width uint16
+		v := p.oam_entries[i]
+		if lcdc&OBJ_SIZE != 0 {
+			tileIDX = tileIDX & ^uint16(0b01)
+			width = 15
+		} else {
+			tileIDX = uint16(v.tileIdx)
+			width = 7
+		}
+
+		if v.flags.yFlip {
+			offset = (width - uint16(((ly + 16) - v.yPOS))) * 2
+		} else {
+			offset = uint16((((ly + 16) - v.yPOS) % 8) * 2)
+		}
+
+		low := spriteTileData[(tileIDX*16)+offset]
+		high := spriteTileData[(tileIDX*16)+offset+1]
+
+		for i := uint8(0); i < 8; i++ {
+			if v.flags.xFlip {
+				bitPos = i
+			} else {
+				bitPos = 7 - i
+			}
+
+			bgWinPixel := pixelBuffer[i+v.xPOS]
+			spritePixel := p.constructSprite(low, high, bitPos, v.flags.palleteNum)
+
+			var finalPxColorIdx uint8
+			var finalPxPallete uint8
+
+			if v.flags.BG_WIN_OVR_OBJ {
+				if bgWinPixel.colorIndex == 0 {
+					finalPxColorIdx = spritePixel.colorIndex
+					finalPxPallete = spritePixel.pallete
+				} else {
+					finalPxColorIdx = bgWinPixel.colorIndex
+					finalPxPallete = bgWinPixel.pallete
+				}
+			} else {
+				if spritePixel.colorIndex == 0 {
+					finalPxColorIdx = bgWinPixel.colorIndex
+					finalPxPallete = bgWinPixel.pallete
+				} else {
+					finalPxColorIdx = spritePixel.colorIndex
+					finalPxPallete = spritePixel.pallete
+				}
+			}
+
+			pixelBuffer[i+v.xPOS] = pixel{
+				colorIndex: finalPxColorIdx,
+				pallete:    finalPxPallete,
+			}
+		}
+	}
 }
 
 func (p *ppu) scanLine(lcdc, wY, wX, scY, scX, ly *uint8) {
-	// render Background
-	// p.lgr.Printf("Scanline started %d\n", *ly)
+	var pixelBuffer []pixel = make([]pixel, 176)
+
 	if *lcdc&BG_WIN_ENABLE == BG_WIN_ENABLE {
-		// draw either the background or the window
-		p.drawBackgroundAndWin(lcdc, ly, wY, wX, scY, scX)
-		// p.drawBackground(lcdc, ly, scY, scX)
+		p.drawBackgroundAndWin(pixelBuffer, lcdc, ly, wY, wX, scY, scX)
+	} else {
+		for i := 0; i < len(pixelBuffer); i++ {
+			pixelBuffer[i] = pixel{
+				colorIndex: 0,
+				pallete:    p.ppu_regs[parseIdx(BGP, PPU_BASE)],
+			}
+		}
 	}
 
 	if *lcdc&OBJ_ENABLE == OBJ_ENABLE {
-		// p.drawObjects()
+		p.drawSprites(pixelBuffer, *lcdc, *ly)
+	}
+
+	for i := uint(0) + 8; i < BUF_X+8; i++ {
+		px := pixelBuffer[uint8(i)]
+		p.canvas_buffer[(i+BUF_X*uint(*ly))-8] = getColorFromIndex(px.pallete, px.colorIndex)
 	}
 }
 
+func getColorFromIndex(pallete, colorIndex uint8) uint32 {
+	idx := (pallete >> (colorIndex * 2)) & 0b11
+	return colorPallete[idx]
+}
+
 func (p *ppu) Read_VRAM(addr uint16) *uint8 {
-	// lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
 	if p.mode == MODE_3 {
 		return &defaultVal
 	}
 	return &p.vRAM[addr]
 }
 
-func constructPixel(low, high, bitNum uint8) uint32 {
-	var pxVal uint32
-	bitlow, bitHigh := (low&(0x1<<bitNum))>>bitNum, (high&(0x1<<bitNum))>>bitNum
-	pxVal = pallete[bitHigh<<1|bitlow]
-	return pxVal
+func (p *ppu) constructSprite(low, high, bitNum uint8, pallete uint16) pixel {
+	bitlow, bitHigh := (low>>bitNum)&0x1, (high>>bitNum)&0x1
+	index := (bitHigh<<1 | bitlow)
+
+	return pixel{
+		colorIndex: index,
+		pallete:    p.ppu_regs[uint8(parseIdx(pallete, PPU_BASE))],
+	}
+}
+
+func (p *ppu) constructBGWinPixel(low, high, bitNum uint8) pixel {
+	bitlow, bitHigh := (low>>bitNum)&0x1, (high>>bitNum)&0x1
+	index := (bitHigh<<1 | bitlow)
+
+	return pixel{
+		colorIndex: index,
+		pallete:    p.ppu_regs[uint8(parseIdx(BGP, PPU_BASE))],
+	}
 }
 
 func (p *ppu) Write_VRAM(addr uint16, val uint8) {
