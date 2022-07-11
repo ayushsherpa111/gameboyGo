@@ -159,7 +159,7 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 		oam_entries:   [10]oam{},
 		lgr:           logger.NewLogger(os.Stdout, true, "PPU"),
 		canvas_buffer: [BUF_X * BUF_Y]uint32{},
-		ppu_regs:      make([]uint8, 12),
+		ppu_regs:      make([]uint8, 15),
 		bufChan:       bufferChan,
 		dots:          0,
 	}
@@ -180,9 +180,9 @@ func (p *ppu) parseOAMFlag(flag uint8) oam_flag {
 	var palletNum uint16
 
 	if (flag & PALETTE_NUM) != 0 {
-		palletNum = OBP1 // p.ppu_regs[parseIdx(, PPU_BASE)]
+		palletNum = OBP1
 	} else {
-		palletNum = OBP0 // p.ppu_regs[parseIdx(OBP0, PPU_BASE)]
+		palletNum = OBP0
 	}
 
 	return oam_flag{
@@ -499,7 +499,7 @@ func (p *ppu) constructSprite(low, high, bitNum uint8, pallete uint16) pixel {
 
 	return pixel{
 		colorIndex: index,
-		pallete:    p.ppu_regs[uint8(parseIdx(pallete, PPU_BASE))],
+		pallete:    p.ppu_regs[parseIdx(pallete, PPU_BASE)],
 	}
 }
 
@@ -509,7 +509,7 @@ func (p *ppu) constructBGWinPixel(low, high, bitNum uint8) pixel {
 
 	return pixel{
 		colorIndex: index,
-		pallete:    p.ppu_regs[uint8(parseIdx(BGP, PPU_BASE))],
+		pallete:    p.ppu_regs[parseIdx(BGP, PPU_BASE)],
 	}
 }
 
