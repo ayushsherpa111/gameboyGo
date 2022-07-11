@@ -40,9 +40,9 @@ const (
 
 var colorPallete = []uint32{
 	0xFFFFFFFF,
-	0x44444444,
-	0xAAAAAAAA,
-	0x00000000,
+	0xFFAAAAAA,
+	0xFF444444,
+	0xFF000000,
 }
 
 const (
@@ -169,7 +169,7 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 func (p *ppu) SortOAM() {
 	for i := 0; i < int(p.spriteCount); i++ {
 		for j := i + 1; j < int(p.spriteCount); j++ {
-			if p.oam_entries[i].xPOS > p.oam_entries[j].xPOS {
+			if p.oam_entries[i].xPOS >= p.oam_entries[j].xPOS {
 				p.oam_entries[i], p.oam_entries[j] = p.oam_entries[j], p.oam_entries[i]
 			}
 		}
@@ -396,13 +396,15 @@ func (p *ppu) drawSprites(pixelBuffer []pixel, lcdc, ly uint8) {
 	spriteTileData := p.getSlice(0x8000, 0x8FFF)
 	var bitPos uint8
 	var tileIDX uint16
+	var finalPxColorIdx uint8
+	var finalPxPallete uint8
+	var offset uint16
+	var width uint16
 
 	for i := 0; i < int(p.spriteCount); i++ {
-		var offset uint16
-		var width uint16
 		v := p.oam_entries[i]
 		if lcdc&OBJ_SIZE != 0 {
-			tileIDX = tileIDX & ^uint16(0b01)
+			tileIDX = uint16(v.tileIdx) & ^uint16(0b01)
 			width = 15
 		} else {
 			tileIDX = uint16(v.tileIdx)
@@ -412,7 +414,7 @@ func (p *ppu) drawSprites(pixelBuffer []pixel, lcdc, ly uint8) {
 		if v.flags.yFlip {
 			offset = (width - uint16(((ly + 16) - v.yPOS))) * 2
 		} else {
-			offset = uint16((((ly + 16) - v.yPOS) % 8) * 2)
+			offset = uint16((((ly + 16) - v.yPOS) % (uint8(width) + 1)) * 2)
 		}
 
 		low := spriteTileData[(tileIDX*16)+offset]
@@ -427,9 +429,6 @@ func (p *ppu) drawSprites(pixelBuffer []pixel, lcdc, ly uint8) {
 
 			bgWinPixel := pixelBuffer[i+v.xPOS]
 			spritePixel := p.constructSprite(low, high, bitPos, v.flags.palleteNum)
-
-			var finalPxColorIdx uint8
-			var finalPxPallete uint8
 
 			if v.flags.BG_WIN_OVR_OBJ {
 				if bgWinPixel.colorIndex == 0 {

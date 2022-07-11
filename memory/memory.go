@@ -27,7 +27,6 @@ var (
 		0xFF4C: {},
 		0xFF4D: {},
 		0xFF4E: {},
-		0xFF4F: {},
 	}
 )
 
