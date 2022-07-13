@@ -169,7 +169,7 @@ func NewPPU(bufferChan chan<- []uint32) *ppu {
 func (p *ppu) SortOAM() {
 	for i := 0; i < int(p.spriteCount); i++ {
 		for j := i + 1; j < int(p.spriteCount); j++ {
-			if p.oam_entries[i].xPOS >= p.oam_entries[j].xPOS {
+			if p.oam_entries[i].xPOS <= p.oam_entries[j].xPOS {
 				p.oam_entries[i], p.oam_entries[j] = p.oam_entries[j], p.oam_entries[i]
 			}
 		}
