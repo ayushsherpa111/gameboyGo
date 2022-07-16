@@ -31,7 +31,8 @@ var (
 )
 
 const (
-	ROM_END = 0x7FFF
+	JOYPAD_ADDR = 0xFF00
+	ROM_END     = 0x7FFF
 
 	VRAM_START = 0x8000
 	VRAM_END   = 0x9FFF
@@ -121,6 +122,7 @@ type memory struct {
 	gpu            interfaces.GPU
 	Scheduler      interfaces.Scheduler
 	lastCycleCount uint64
+	joypadCtx      interfaces.Joypad
 }
 
 func (m *memory) setIF(bit uint8) {
@@ -153,7 +155,7 @@ func (m *memory) ReadIO(addr uint16) uint8 {
 	return m.ioRegs[addr]
 }
 
-func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*memory, error) {
+func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU, joypadCtx interfaces.Joypad) (*memory, error) {
 	if len(bootLoader) != 256 {
 		return nil, errors.New("Invalid Bootloader provided")
 	}
@@ -176,7 +178,9 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU) (*me
 		cart:               cartridge.NewCart(romData),
 		lgr:                logger.NewLogger(os.Stdout, debug, "Memory"),
 		gpu:                gpu,
+		joypadCtx:          joypadCtx,
 	}
+
 	mem.cart.HeaderInfo()
 	mem.ioRegs[LY_REG-IO_START] = 0x90
 	gpu.RefInterruptFlag(&mem.ioRegs[INTERRUPT_FLAG-IO_START])

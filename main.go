@@ -10,6 +10,7 @@ import (
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 	"github.com/ayushsherpa111/gameboyEMU/frontend"
 	_ "github.com/ayushsherpa111/gameboyEMU/frontend"
+	"github.com/ayushsherpa111/gameboyEMU/joypad"
 	"github.com/ayushsherpa111/gameboyEMU/logger"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
 	"github.com/ayushsherpa111/gameboyEMU/opcodes"
@@ -41,10 +42,11 @@ func main() {
 		os.Exit(2)
 	}
 	bufferChan := make(chan []uint32, 10)
-	inputChan := make(chan sdl.Event, 120)
+	inputChan := make(chan sdl.Keycode, 120)
+	joyPadCtx := joypad.NewContext()
 
 	ppu := ppu.NewPPU(bufferChan)
-	mem, err := memory.InitMem(bootLoader, ROM, debug, ppu)
+	mem, err := memory.InitMem(bootLoader, ROM, debug, ppu, joyPadCtx)
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -68,8 +70,11 @@ func main() {
 				return
 			}
 			select {
-			case <-inputChan:
-				break
+			case k := <-inputChan:
+				switch k {
+				case sdl.K_q:
+					return
+				}
 			default:
 			}
 		}

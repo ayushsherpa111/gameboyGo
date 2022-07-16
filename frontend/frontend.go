@@ -46,32 +46,28 @@ func (w *window) Run() {
 	isRunning := true
 
 	go w.listenForInput()
-	var v []uint32
+	var frames []uint32
 
 	for isRunning {
-		w.tex.UpdateRGBA(nil, v, WIDTH)
+		w.tex.UpdateRGBA(nil, frames, WIDTH)
 		w.renderer.Copy(w.tex, nil, nil)
 		w.renderer.Present()
 		select {
-		case v = <-w.bufferChan:
-		case key := <-w.sdlInpChan:
+		case frames = <-w.bufferChan:
+		case key := <-w.SdlInpChan:
+			w.inputChan <- key
 			switch key {
 			case sdl.K_q:
 				w.lgr.Infof("Quitting")
 				isRunning = false
-				w.inputChan <- nil
-				if e != nil {
-					w.lgr.Errorf("Error marshalling frames")
-					return
-				}
-				break
+				return
 			}
 		default:
 		}
 	}
 }
 
-func (w *window) SetChannels(bufferChan <-chan []uint32, inputChan chan<- sdl.Event) {
+func (w *window) SetChannels(bufferChan <-chan []uint32, inputChan chan<- sdl.Keycode) {
 	w.bufferChan = bufferChan
 	w.inputChan = inputChan
 }

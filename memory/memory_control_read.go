@@ -15,7 +15,11 @@ func (m *memory) read_io(addr uint16, cycleCount uint64) types.ReadMemFunc {
 
 	newAddr := addr - IO_START
 	return func() *uint8 {
-		// TODO: Handle reads to TIMA by using the cpu cycles and the TAC register
+
+		if newAddr == 0x00 {
+			return m.joypadCtx.GetGamepadState()
+		}
+
 		switch addr {
 		case TIMA:
 			// should retrn a value between 0x0 - 0xFF

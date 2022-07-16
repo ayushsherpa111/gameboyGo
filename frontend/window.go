@@ -18,8 +18,8 @@ type window struct {
 	renderer   *sdl.Renderer
 	tex        *sdl.Texture
 	lgr        logger.Logger
-	inputChan  chan<- sdl.Event // Write Only Channel for keyboard events
-	sdlInpChan chan sdl.Keycode
+	inputChan  chan<- sdl.Keycode // Write Only Channel for keyboard events
+	SdlInpChan chan sdl.Keycode
 	bufferChan <-chan []uint32 // Read Only Channel for frame buffers
 	winBuf     []uint32
 }
@@ -28,7 +28,7 @@ func (w *window) cleanUp() {
 	w.tex.Destroy()
 	w.renderer.Destroy()
 	w.win.Destroy()
-	close(w.inputChan)
+	// close(w.inputChan)
 }
 
 func (w *window) createTexture(txWidth, txHeight int32) error {
@@ -50,7 +50,7 @@ func createWindow(width, height int32, bufferChan <-chan []uint32) (*window, err
 	newWin := &window{
 		bufferChan: bufferChan,
 		lgr:        logger.NewLogger(os.Stdout, true, "Frontend"),
-		sdlInpChan: make(chan sdl.Keycode, 60),
+		SdlInpChan: make(chan sdl.Keycode, 60),
 	}
 	WhiteOut(newWin.winBuf, 0xFA1F3F9F)
 	win, rend, err := sdl.CreateWindowAndRenderer(width, height, win_conf)
@@ -67,7 +67,7 @@ func (w *window) listenForInput() {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch t := event.(type) {
 			case *sdl.KeyboardEvent:
-				w.sdlInpChan <- t.Keysym.Sym
+				w.SdlInpChan <- t.Keysym.Sym
 			}
 		}
 	}

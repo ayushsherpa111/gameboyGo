@@ -285,6 +285,7 @@ func (c *CPU) handleInterrupt() {
 	case isEnabled(interrupt, V_BLANK):
 		*IF = clearBit(*IF, V_BLANK)
 		c.PC = VB_VEC
+		// read for Joypad input as well
 	case isEnabled(interrupt, LCD_STAT):
 		*IF = clearBit(*IF, LCD_STAT)
 		c.PC = ST_VEC
