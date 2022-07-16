@@ -6,4 +6,5 @@ type Mem interface {
 	UnloadBootloader()
 	TickAllComponents(uint64)
 	SetScheduler(Scheduler)
+	HandleInput(uint8, bool)
 }

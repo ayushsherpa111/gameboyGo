@@ -39,9 +39,10 @@ type CPU struct {
 	CycleCount uint64
 	Scheduler  interfaces.Scheduler
 	Halted     bool
+	joypadChan <-chan types.KeyboardEvent
 }
 
-func NewCPU(mem interfaces.Mem) *CPU {
+func NewCPU(mem interfaces.Mem, joyPad <-chan types.KeyboardEvent) *CPU {
 	return &CPU{
 		registers:  [8]uint8{},
 		PC:         0x000,
@@ -51,6 +52,7 @@ func NewCPU(mem interfaces.Mem) *CPU {
 		CloseChan:  make(chan struct{}),
 		CycleCount: 0,
 		Halted:     false,
+		joypadChan: joyPad,
 	}
 }
 
@@ -283,6 +285,11 @@ func (c *CPU) handleInterrupt() {
 
 	switch {
 	case isEnabled(interrupt, V_BLANK):
+		select {
+		case inp := <-c.joypadChan:
+			c.memory.HandleInput(types.KeyMap[inp.Key], inp.State)
+		default:
+		}
 		*IF = clearBit(*IF, V_BLANK)
 		c.PC = VB_VEC
 		// read for Joypad input as well

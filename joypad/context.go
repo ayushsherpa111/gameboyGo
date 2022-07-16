@@ -35,10 +35,11 @@ func (c context) SetSelBit(val uint8) {
 func (c context) GetGamepadState() *uint8 {
 	if c.directionBit {
 		return &c.controller.directionBits
-	} else {
+	}
+	if c.actionBit {
 		return &c.controller.actionBits
 	}
-	// return nil
+	return nil
 }
 
 func NewContext() context {
@@ -46,8 +47,26 @@ func NewContext() context {
 		actionBit:    false,
 		directionBit: false,
 		controller: joypad{
-			directionBits: 0,
-			actionBits:    0,
+			directionBits: 0x0F,
+			actionBits:    0x0F,
 		},
 	}
+}
+
+/*
+	Register Bits related to Direction/Action as key press (0 = Pressed)
+*/
+func (c context) KeyDown(key uint8) {
+	var keyVal uint8 = key & 0x0F
+	if (key & directionBit) != 0 {
+		c.controller.SetDirection(keyVal)
+	} else if (key & actionBit) != 0 {
+		c.controller.SetAction(keyVal)
+	}
+}
+
+/*
+	Register Bits related to Direction/Action as key release (0 = Pressed)
+*/
+func (c context) KeyUp(_ uint8) {
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/ayushsherpa111/gameboyEMU/logger"
+	"github.com/ayushsherpa111/gameboyEMU/types"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -14,12 +15,12 @@ const (
 var tex_pixel_format = uint32(sdl.PIXELFORMAT_RGBA32)
 
 type window struct {
-	win        *sdl.Window
-	renderer   *sdl.Renderer
-	tex        *sdl.Texture
-	lgr        logger.Logger
-	inputChan  chan<- sdl.Keycode // Write Only Channel for keyboard events
-	SdlInpChan chan sdl.Keycode
+	win      *sdl.Window
+	renderer *sdl.Renderer
+	tex      *sdl.Texture
+	lgr      logger.Logger
+	// inputChan  chan<- types.KeyboardEvent // Write Only Channel for keyboard events
+	SdlInpChan chan types.KeyboardEvent
 	bufferChan <-chan []uint32 // Read Only Channel for frame buffers
 	winBuf     []uint32
 }
@@ -50,9 +51,9 @@ func createWindow(width, height int32, bufferChan <-chan []uint32) (*window, err
 	newWin := &window{
 		bufferChan: bufferChan,
 		lgr:        logger.NewLogger(os.Stdout, true, "Frontend"),
-		SdlInpChan: make(chan sdl.Keycode, 60),
+		SdlInpChan: make(chan types.KeyboardEvent, 60),
 	}
-	WhiteOut(newWin.winBuf, 0xFA1F3F9F)
+	// WhiteOut(newWin.winBuf, 0xFA1F3F9F)
 	win, rend, err := sdl.CreateWindowAndRenderer(width, height, win_conf)
 	if err != nil {
 		return newWin, err
@@ -67,7 +68,7 @@ func (w *window) listenForInput() {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch t := event.(type) {
 			case *sdl.KeyboardEvent:
-				w.SdlInpChan <- t.Keysym.Sym
+				w.SdlInpChan <- types.NewKeyboardEvent(t.Keysym.Sym, t.State)
 			}
 		}
 	}

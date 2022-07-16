@@ -283,3 +283,7 @@ func (m *memory) TickAllComponents(cycleCount uint64) {
 		m.gpu.UpdateGPU()
 	}
 }
+
+func (m *memory) HandleInput(keyPress uint8, state bool) {
+
+}

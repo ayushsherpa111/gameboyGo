@@ -55,8 +55,7 @@ func (w *window) Run() {
 		select {
 		case frames = <-w.bufferChan:
 		case key := <-w.SdlInpChan:
-			w.inputChan <- key
-			switch key {
+			switch key.Key {
 			case sdl.K_q:
 				w.lgr.Infof("Quitting")
 				isRunning = false
@@ -67,7 +66,6 @@ func (w *window) Run() {
 	}
 }
 
-func (w *window) SetChannels(bufferChan <-chan []uint32, inputChan chan<- sdl.Keycode) {
+func (w *window) SetChannels(bufferChan <-chan []uint32) {
 	w.bufferChan = bufferChan
-	w.inputChan = inputChan
 }

@@ -41,8 +41,9 @@ func main() {
 		lgr.Fatalf("No ROM provided")
 		os.Exit(2)
 	}
+
+	frontend.SetupWindow()
 	bufferChan := make(chan []uint32, 10)
-	inputChan := make(chan sdl.Keycode, 120)
 	joyPadCtx := joypad.NewContext()
 
 	ppu := ppu.NewPPU(bufferChan)
@@ -53,13 +54,12 @@ func main() {
 		os.Exit(-1)
 	}
 
-	cpu := cpu.NewCPU(mem)
+	cpu := cpu.NewCPU(mem, frontend.EmuWindow.SdlInpChan)
 	sched := scheduler.NewScheduler(cpu)
 	cpu.Scheduler = sched
 	mem.SetScheduler(sched)
 
-	frontend.SetupWindow()
-	frontend.EmuWindow.SetChannels(bufferChan, inputChan)
+	frontend.EmuWindow.SetChannels(bufferChan)
 
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
 
@@ -70,8 +70,8 @@ func main() {
 				return
 			}
 			select {
-			case k := <-inputChan:
-				switch k {
+			case k := <-frontend.EmuWindow.SdlInpChan:
+				switch k.Key {
 				case sdl.K_q:
 					return
 				}
