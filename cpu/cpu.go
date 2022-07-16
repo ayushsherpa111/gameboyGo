@@ -287,7 +287,7 @@ func (c *CPU) handleInterrupt() {
 	case isEnabled(interrupt, V_BLANK):
 		select {
 		case inp := <-c.joypadChan:
-			c.memory.HandleInput(types.KeyMap[inp.Key], inp.State)
+			c.memory.HandleInput(inp)
 		default:
 		}
 		*IF = clearBit(*IF, V_BLANK)

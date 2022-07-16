@@ -29,12 +29,20 @@ func unmask(val, mask uint8) bool {
 	return false
 }
 
-func (j joypad) SetDirection(direction uint8) {
-	j.directionBits |= direction
+func (j joypad) SetDirection(direction uint8, state bool) {
+	if state {
+		j.directionBits &= direction
+	} else {
+		j.directionBits |= ((^direction) & 0x0F)
+	}
 }
 
-func (j joypad) SetAction(action uint8) {
-	j.actionBits |= action
+func (j joypad) SetAction(action uint8, state bool) {
+	if state {
+		j.actionBits &= action
+	} else {
+		j.actionBits |= ((^action) & 0x0F)
+	}
 }
 
 func (j joypad) GetStart() bool {

@@ -8,13 +8,5 @@ type Joypad interface {
 
 	GetGamepadState() *uint8
 
-	/*
-		Register Bits related to Direction/Action as key press (0 = Pressed)
-	*/
-	KeyDown(uint8)
-
-	/*
-		Register Bits related to Direction/Action as key release (0 = Pressed)
-	*/
-	KeyUp(uint8)
+	HandleEvent(uint8, bool)
 }

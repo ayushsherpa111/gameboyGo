@@ -284,6 +284,6 @@ func (m *memory) TickAllComponents(cycleCount uint64) {
 	}
 }
 
-func (m *memory) HandleInput(keyPress uint8, state bool) {
-
+func (m *memory) HandleInput(keyEvent types.KeyboardEvent) {
+	m.joypadCtx.HandleEvent(types.KeyMap[keyEvent.Key], keyEvent.State)
 }

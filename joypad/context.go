@@ -53,20 +53,10 @@ func NewContext() context {
 	}
 }
 
-/*
-	Register Bits related to Direction/Action as key press (0 = Pressed)
-*/
-func (c context) KeyDown(key uint8) {
-	var keyVal uint8 = key & 0x0F
+func (c context) HandleEvent(key uint8, state bool) {
 	if (key & directionBit) != 0 {
-		c.controller.SetDirection(keyVal)
+		c.controller.SetDirection(key&0xF, state)
 	} else if (key & actionBit) != 0 {
-		c.controller.SetAction(keyVal)
+		c.controller.SetAction(key&0xF, state)
 	}
-}
-
-/*
-	Register Bits related to Direction/Action as key release (0 = Pressed)
-*/
-func (c context) KeyUp(_ uint8) {
 }
