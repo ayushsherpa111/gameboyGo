@@ -25,21 +25,25 @@ type context struct {
 func (c context) SetSelBit(val uint8) {
 	if (^val & actionBit) > 0 {
 		c.actionBit = true
+	} else {
+		c.actionBit = false
 	}
 
 	if (^val & directionBit) > 0 {
 		c.directionBit = true
+	} else {
+		c.directionBit = false
 	}
 }
 
 func (c context) GetGamepadState() *uint8 {
 	if c.directionBit {
-		return &c.controller.directionBits
+		return &c.controller.DirectionBits
 	}
 	if c.actionBit {
-		return &c.controller.actionBits
+		return &c.controller.ActionBits
 	}
-	return nil
+	return &c.controller.Default
 }
 
 func NewContext() context {
@@ -47,8 +51,9 @@ func NewContext() context {
 		actionBit:    false,
 		directionBit: false,
 		controller: joypad{
-			directionBits: 0x0F,
-			actionBits:    0x0F,
+			DirectionBits: 0x0F,
+			ActionBits:    0x0F,
+			Default:       0xFF,
 		},
 	}
 }
