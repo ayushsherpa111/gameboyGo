@@ -40,9 +40,6 @@ func (m *memory) write_wram(addr uint16) types.WriteMemFunc {
 
 func (m *memory) write_oam(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	newAddr := addr - OAM_START
-	if addr == DMA {
-		return m.handleDMA(cycleCount)
-	}
 
 	return func(val uint8) error {
 		m.gpu.Write_OAM(newAddr, val, false)
@@ -72,6 +69,10 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 		return func(val uint8) error {
 			return m.gpu.Write_Regs(addr, val)
 		}
+	}
+
+	if addr == DMA {
+		return m.handleDMA(cycleCount)
 	}
 
 	newAddr := addr - IO_START

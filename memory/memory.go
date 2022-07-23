@@ -2,6 +2,7 @@ package memory
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -49,7 +50,6 @@ const (
 
 	OAM_START = 0xFE00
 	OAM_END   = 0xFE9F
-	DMA       = 0xFE46
 
 	HRAM_START = 0xFF80
 	HRAM_END   = 0xFFFE
@@ -59,6 +59,7 @@ const (
 
 	IO_START = 0xFF00
 	IO_END   = 0xFF7F
+	DMA      = 0xFF46
 
 	BOOT_LOADER_FLAG = 0xFF50
 	LY_REG           = 0xFF44
@@ -285,6 +286,6 @@ func (m *memory) TickAllComponents(cycleCount uint64) {
 }
 
 func (m *memory) HandleInput(keyEvent types.KeyboardEvent) {
-	// m.lgr.Infof("Key pressed: %d\n", keyEvent.Key)
+	fmt.Println("handling input")
 	m.joypadCtx.HandleEvent(types.KeyMap[keyEvent.Key], keyEvent.State)
 }

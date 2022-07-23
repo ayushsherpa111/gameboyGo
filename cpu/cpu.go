@@ -59,10 +59,10 @@ func NewCPU(mem interfaces.Mem, joyPad <-chan types.KeyboardEvent) *CPU {
 func (c *CPU) ListenForKeyPress() {
 	for {
 		inp := <-c.joypadChan
-		fmt.Println("Keyboard input received")
 		if inp.Key == sdl.K_q {
 			break
 		}
+		// fmt.Println("Keyboard pressed")
 		c.memory.HandleInput(inp)
 	}
 }

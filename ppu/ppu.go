@@ -245,6 +245,7 @@ func (p *ppu) UpdateGPU() {
 
 	if *lcd_c&LCD_PPU_ENABLE == 0 {
 		// LCD off
+		// TODO: LCD RESET
 		p.dots = 0
 		*lY = 0
 		*lcd_s = setMode(*lcd_s, LCD_STAT_HBLANK)
@@ -522,18 +523,18 @@ func (p *ppu) Write_VRAM(addr uint16, val uint8) {
 }
 
 func (p *ppu) Read_OAM(addr uint16) *uint8 {
-	// if p.mode == MODE_2 {
-	// 	return &defaultVal
-	// }
+	if p.mode == MODE_2 {
+		return &defaultVal
+	}
 	return &p.oam[addr]
 }
 
 func (p *ppu) Write_OAM(addr uint16, val uint8, isDMA bool) {
 	// compare lcd_s to mode bits (last 2 bits)
 	// lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
-	// if p.mode == MODE_2 || !isDMA {
-	// 	return
-	// }
+	if p.mode == MODE_2 || !isDMA {
+		return
+	}
 	p.oam[addr] = val
 }
 

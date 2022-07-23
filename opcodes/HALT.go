@@ -1,6 +1,8 @@
 package opcodes
 
 import (
+	"fmt"
+
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 )
 
@@ -10,7 +12,7 @@ type halt struct {
 
 func (h *halt) Exec(opcode byte) {
 	h.c.Halted = true
-	// fmt.Println("HALTED")
+	fmt.Println("HALTED")
 }
 
 func NewHalt(c *cpu.CPU) *halt {

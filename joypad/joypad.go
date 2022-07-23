@@ -30,7 +30,7 @@ func unmask(val, mask uint8) bool {
 	return false
 }
 
-func (j joypad) SetDirection(direction uint8, state bool) {
+func (j *joypad) SetDirection(direction uint8, state bool) {
 	if state {
 		j.DirectionBits &= direction
 	} else {
@@ -38,7 +38,7 @@ func (j joypad) SetDirection(direction uint8, state bool) {
 	}
 }
 
-func (j joypad) SetAction(action uint8, state bool) {
+func (j *joypad) SetAction(action uint8, state bool) {
 	if state {
 		j.ActionBits &= action
 	} else {

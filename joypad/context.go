@@ -19,24 +19,15 @@ type context struct {
 	*/
 	directionBit bool
 
-	controller joypad
+	controller *joypad
 }
 
-func (c context) SetSelBit(val uint8) {
-	if (^val & actionBit) > 0 {
-		c.actionBit = true
-	} else {
-		c.actionBit = false
-	}
-
-	if (^val & directionBit) > 0 {
-		c.directionBit = true
-	} else {
-		c.directionBit = false
-	}
+func (c *context) SetSelBit(val uint8) {
+	c.actionBit = (val & actionBit) == 0
+	c.directionBit = (val & directionBit) == 0
 }
 
-func (c context) GetGamepadState() *uint8 {
+func (c *context) GetGamepadState() *uint8 {
 	if c.directionBit {
 		return &c.controller.DirectionBits
 	}
@@ -46,11 +37,11 @@ func (c context) GetGamepadState() *uint8 {
 	return &c.controller.Default
 }
 
-func NewContext() context {
-	return context{
+func NewContext() *context {
+	return &context{
 		actionBit:    false,
 		directionBit: false,
-		controller: joypad{
+		controller: &joypad{
 			DirectionBits: 0x0F,
 			ActionBits:    0x0F,
 			Default:       0xFF,
@@ -58,7 +49,7 @@ func NewContext() context {
 	}
 }
 
-func (c context) HandleEvent(key uint8, state bool) {
+func (c *context) HandleEvent(key uint8, state bool) {
 	if (key & directionBit) != 0 {
 		c.controller.SetDirection(key&0xF, state)
 	} else if (key & actionBit) != 0 {
