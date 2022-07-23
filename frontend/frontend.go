@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/ayushsherpa111/gameboyEMU/types"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -55,17 +56,21 @@ func (w *window) Run() {
 		select {
 		case frames = <-w.bufferChan:
 		case key := <-w.SdlInpChan:
+			// w.lgr.Infof("received: %d", key.Key)
 			switch key.Key {
 			case sdl.K_q:
 				w.lgr.Infof("Quitting")
 				isRunning = false
 				return
+				// default:
+				// 	w.broadcastChan <- key
 			}
 		default:
 		}
 	}
 }
 
-func (w *window) SetChannels(bufferChan <-chan []uint32) {
+func (w *window) SetChannels(bufferChan <-chan []uint32, broadcastChan chan types.KeyboardEvent) {
 	w.bufferChan = bufferChan
+	w.broadcastChan = broadcastChan
 }

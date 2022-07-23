@@ -38,10 +38,14 @@ func (m *memory) write_wram(addr uint16) types.WriteMemFunc {
 	}
 }
 
-func (m *memory) write_oam(addr uint16) types.WriteMemFunc {
+func (m *memory) write_oam(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	newAddr := addr - OAM_START
+	if addr == DMA {
+		return m.handleDMA(cycleCount)
+	}
+
 	return func(val uint8) error {
-		m.gpu.Write_OAM(newAddr, val)
+		m.gpu.Write_OAM(newAddr, val, false)
 		return nil
 	}
 }
@@ -54,11 +58,10 @@ func (m *memory) ignore_io_write() types.WriteMemFunc {
 
 func (m *memory) handleDMA(cycleCount uint64) types.WriteMemFunc {
 	return func(u uint8) error {
-		var shiftedData uint16 = uint16(u) << 8
+		var address uint16 = uint16(u) << 8
 		var i uint16
 		for i = 0; i < 0xA0; i++ {
-			val := m.getReadMemBlock(uint16(shiftedData+i), cycleCount)()
-			m.write_oam(uint16(OAM_START + i))(*val)
+			m.gpu.Write_OAM(i, *m.getReadMemBlock(address+i, cycleCount)(), true)
 		}
 		return nil
 	}
@@ -69,10 +72,6 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 		return func(val uint8) error {
 			return m.gpu.Write_Regs(addr, val)
 		}
-	}
-
-	if addr == DMA {
-		return m.handleDMA(cycleCount)
 	}
 
 	newAddr := addr - IO_START

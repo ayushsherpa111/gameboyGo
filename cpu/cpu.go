@@ -8,6 +8,7 @@ import (
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
 	"github.com/ayushsherpa111/gameboyEMU/types"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -53,6 +54,16 @@ func NewCPU(mem interfaces.Mem, joyPad <-chan types.KeyboardEvent) *CPU {
 		CycleCount: 0,
 		Halted:     false,
 		joypadChan: joyPad,
+	}
+}
+func (c *CPU) ListenForKeyPress() {
+	for {
+		inp := <-c.joypadChan
+		fmt.Println("Keyboard input received")
+		if inp.Key == sdl.K_q {
+			break
+		}
+		c.memory.HandleInput(inp)
 	}
 }
 
@@ -285,11 +296,6 @@ func (c *CPU) handleInterrupt() {
 
 	switch {
 	case isEnabled(interrupt, V_BLANK):
-		select {
-		case inp := <-c.joypadChan:
-			c.memory.HandleInput(inp)
-		default:
-		}
 		*IF = clearBit(*IF, V_BLANK)
 		c.PC = VB_VEC
 		// read for Joypad input as well

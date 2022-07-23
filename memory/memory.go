@@ -248,7 +248,7 @@ func (m *memory) getWriteMemBlock(addr uint16, cycleCount uint64) types.WriteMem
 	} else if addr <= ECHO_RAM_END {
 		return m.write_wram(addr)
 	} else if addr <= OAM_END {
-		return m.write_oam(addr)
+		return m.write_oam(addr, cycleCount)
 	} else if addr <= NU_END {
 		return m.ignore_io_write()
 	} else if addr <= IO_END {
@@ -285,5 +285,6 @@ func (m *memory) TickAllComponents(cycleCount uint64) {
 }
 
 func (m *memory) HandleInput(keyEvent types.KeyboardEvent) {
+	// m.lgr.Infof("Key pressed: %d\n", keyEvent.Key)
 	m.joypadCtx.HandleEvent(types.KeyMap[keyEvent.Key], keyEvent.State)
 }

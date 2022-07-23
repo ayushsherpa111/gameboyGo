@@ -16,6 +16,7 @@ import (
 	"github.com/ayushsherpa111/gameboyEMU/opcodes"
 	"github.com/ayushsherpa111/gameboyEMU/ppu"
 	"github.com/ayushsherpa111/gameboyEMU/scheduler"
+	"github.com/ayushsherpa111/gameboyEMU/types"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -45,6 +46,7 @@ func main() {
 	frontend.SetupWindow()
 	bufferChan := make(chan []uint32, 10)
 	joyPadCtx := joypad.NewContext()
+	joyPadChan := make(chan types.KeyboardEvent, 120)
 
 	ppu := ppu.NewPPU(bufferChan)
 	mem, err := memory.InitMem(bootLoader, ROM, debug, ppu, joyPadCtx)
@@ -54,29 +56,30 @@ func main() {
 		os.Exit(-1)
 	}
 
-	cpu := cpu.NewCPU(mem, frontend.EmuWindow.SdlInpChan)
+	cpu := cpu.NewCPU(mem, joyPadChan)
+	go cpu.ListenForKeyPress()
 	sched := scheduler.NewScheduler(cpu)
 	cpu.Scheduler = sched
 	mem.SetScheduler(sched)
 
-	frontend.EmuWindow.SetChannels(bufferChan)
+	frontend.EmuWindow.SetChannels(bufferChan, joyPadChan)
 
 	store := opcodes.NewOpcodeStore(cpu) // LUT for decoding instructions
 
 	go func() {
 		for {
 			if e := cpu.FetchDecodeExec(store); e != nil {
-				cpu.CloseChan <- struct{}{}
+				// cpu.CloseChan <- struct{}{}
 				return
 			}
-			select {
-			case k := <-frontend.EmuWindow.SdlInpChan:
-				switch k.Key {
-				case sdl.K_q:
-					return
-				}
-			default:
-			}
+			// select {
+			// case k := <-frontend.EmuWindow.SdlInpChan:
+			// 	switch k.Key {
+			// 	case sdl.K_q:
+			// 		return
+			// 	}
+			// default:
+			// }
 		}
 	}()
 

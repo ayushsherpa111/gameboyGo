@@ -15,14 +15,14 @@ const (
 var tex_pixel_format = uint32(sdl.PIXELFORMAT_RGBA32)
 
 type window struct {
-	win      *sdl.Window
-	renderer *sdl.Renderer
-	tex      *sdl.Texture
-	lgr      logger.Logger
-	// inputChan  chan<- types.KeyboardEvent // Write Only Channel for keyboard events
-	SdlInpChan chan types.KeyboardEvent
-	bufferChan <-chan []uint32 // Read Only Channel for frame buffers
-	winBuf     []uint32
+	win           *sdl.Window
+	renderer      *sdl.Renderer
+	tex           *sdl.Texture
+	lgr           logger.Logger
+	broadcastChan chan<- types.KeyboardEvent // Write Only Channel for keyboard events
+	SdlInpChan    chan types.KeyboardEvent
+	bufferChan    <-chan []uint32 // Read Only Channel for frame buffers
+	winBuf        []uint32
 }
 
 func (w *window) cleanUp() {
@@ -69,6 +69,7 @@ func (w *window) listenForInput() {
 			switch t := event.(type) {
 			case *sdl.KeyboardEvent:
 				w.SdlInpChan <- types.NewKeyboardEvent(t.Keysym.Sym, t.State)
+				w.broadcastChan <- types.NewKeyboardEvent(t.Keysym.Sym, t.State)
 			}
 		}
 	}
