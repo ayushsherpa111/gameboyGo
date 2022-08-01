@@ -69,7 +69,9 @@ func (w *window) listenForInput() {
 			switch t := event.(type) {
 			case *sdl.KeyboardEvent:
 				w.SdlInpChan <- types.NewKeyboardEvent(t.Keysym.Sym, t.State)
-				w.broadcastChan <- types.NewKeyboardEvent(t.Keysym.Sym, t.State)
+				if _, ok := types.KeyMap[t.Keysym.Sym]; ok {
+					w.broadcastChan <- types.NewKeyboardEvent(t.Keysym.Sym, t.State)
+				}
 			}
 		}
 	}

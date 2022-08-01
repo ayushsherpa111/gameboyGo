@@ -136,9 +136,7 @@ func (m *memory) SetIFTimer(sc uint64) func() {
 		// INFO: Function is called once the timer reaches the cycle count where TIMA overflows.
 		// INFO: Assign TMA to TIMA when overflow occurs
 
-		// m.ioRegs[TIMA-IO_START] = m.ioRegs[TMA-IO_START]
 		m.MemWrite(TIMA, m.ioRegs[TMA-IO_START], sc)
-		// m.scheduleTimerEvents(m.ioRegs[TIMA-IO_START])
 	}
 }
 
@@ -286,6 +284,6 @@ func (m *memory) TickAllComponents(cycleCount uint64) {
 }
 
 func (m *memory) HandleInput(keyEvent types.KeyboardEvent) {
-	fmt.Println("handling input")
+	fmt.Printf("handling input 0b08%b %v\n", types.KeyMap[keyEvent.Key], keyEvent.State)
 	m.joypadCtx.HandleEvent(types.KeyMap[keyEvent.Key], keyEvent.State)
 }

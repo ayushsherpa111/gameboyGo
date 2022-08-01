@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/ayushsherpa111/gameboyEMU/interfaces"
 	"github.com/ayushsherpa111/gameboyEMU/memory"
@@ -41,9 +42,16 @@ type CPU struct {
 	Scheduler  interfaces.Scheduler
 	Halted     bool
 	joypadChan <-chan types.KeyboardEvent
+	logFile    *os.File
+	logChan    chan string
+	isDebug    bool
 }
 
-func NewCPU(mem interfaces.Mem, joyPad <-chan types.KeyboardEvent) *CPU {
+func NewCPU(mem interfaces.Mem, joyPad <-chan types.KeyboardEvent, debug bool) *CPU {
+	logFile, err := os.OpenFile("vram.test", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0777)
+	if err != nil {
+		log.Fatalf("%s\n", err.Error())
+	}
 	return &CPU{
 		registers:  [8]uint8{},
 		PC:         0x000,
@@ -54,16 +62,29 @@ func NewCPU(mem interfaces.Mem, joyPad <-chan types.KeyboardEvent) *CPU {
 		CycleCount: 0,
 		Halted:     false,
 		joypadChan: joyPad,
+		logChan:    make(chan string, 100),
+		logFile:    logFile,
 	}
 }
 func (c *CPU) ListenForKeyPress() {
 	for {
 		inp := <-c.joypadChan
 		if inp.Key == sdl.K_q {
+			c.logChan <- ""
 			break
 		}
 		// fmt.Println("Keyboard pressed")
 		c.memory.HandleInput(inp)
+	}
+}
+
+func (c *CPU) WriteToFile() {
+	for {
+		log := <-c.logChan
+		if len(log) == 0 {
+			break
+		}
+		fmt.Fprint(c.logFile, log)
 	}
 }
 
@@ -128,10 +149,6 @@ func (c *CPU) tick() {
 }
 
 func (c *CPU) Fetch() (uint8, error) {
-	if c.PC >= 0x100 && !BOOTLOADER_UNLOADED {
-		c.memory.UnloadBootloader()
-		BOOTLOADER_UNLOADED = true
-	}
 	c.tick()
 	b := c.memory.MemRead(c.PC, c.CycleCount)
 
@@ -214,16 +231,25 @@ func (c *CPU) FetchDecodeExec(store [0x100]interfaces.Instruction) error {
 	// FETCH instruction
 	if !c.Halted {
 		inst, err := c.Fetch()
-		// fmt.Printf("PC: 0x%02x OP:0x%02x Registers: %s Flag: 0b%04b\n", c.PC-1, inst, hexVals(c.registers[:]), c.registers[F]>>4)
 		if err != nil {
 			return err
 		}
+
+		// arg1 := c.memory.MemRead(c.PC, c.CycleCount)
+		// arg2 := c.memory.MemRead(c.PC+1, c.CycleCount)
+		// c.logChan <- fmt.Sprintf("SP:0x%x PC: 0x%02x OP:0x%02x ARG1:0x%02x ARG2:0x%02x  Registers: %s Flag: 0b%04b\n",
+		// 	c.SP, c.PC-1, inst, *arg1, *arg2, hexVals(c.registers[:]), c.registers[F]>>4)
+
+		// if c.PC >= 0xFF00 {
+		// 	c.logChan <- ""
+		// 	log.Fatalln("AT MEMORY 0xFF00")
+		// }
 
 		store[inst].Exec(inst)
 	} else {
 		// c.CycleCount++
 		c.tick()
-		// fmt.Printf("cycle count %d\n", c.CycleCount)
+		fmt.Printf("HALTED: %d\n", c.CycleCount)
 	}
 
 	c.Scheduler.Tick()

@@ -16,6 +16,9 @@ func (m *memory) read_io(addr uint16, cycleCount uint64) types.ReadMemFunc {
 	newAddr := addr - IO_START
 	return func() *uint8 {
 
+		if newAddr == 0x04 {
+			m.ioRegs[newAddr] = uint8(cycleCount / 256)
+		}
 		if newAddr == 0x00 {
 			m.lgr.Infof("reading joypad state")
 			return m.joypadCtx.GetGamepadState()

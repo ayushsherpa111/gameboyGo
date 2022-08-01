@@ -29,7 +29,7 @@ func main() {
 		log.Fatal("Failed to Initialize SDL")
 	}
 	var ROM string
-	var debug bool
+	var debug bool = true
 
 	lgr := logger.NewLogger(os.Stdout, debug, "Main")
 
@@ -56,8 +56,11 @@ func main() {
 		os.Exit(-1)
 	}
 
-	cpu := cpu.NewCPU(mem, joyPadChan)
+	cpu := cpu.NewCPU(mem, joyPadChan, debug)
 	go cpu.ListenForKeyPress()
+	if debug {
+		go cpu.WriteToFile()
+	}
 	sched := scheduler.NewScheduler(cpu)
 	cpu.Scheduler = sched
 	mem.SetScheduler(sched)
@@ -72,14 +75,6 @@ func main() {
 				// cpu.CloseChan <- struct{}{}
 				return
 			}
-			// select {
-			// case k := <-frontend.EmuWindow.SdlInpChan:
-			// 	switch k.Key {
-			// 	case sdl.K_q:
-			// 		return
-			// 	}
-			// default:
-			// }
 		}
 	}()
 

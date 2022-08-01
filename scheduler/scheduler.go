@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/ayushsherpa111/gameboyEMU/cpu"
 	"github.com/ayushsherpa111/gameboyEMU/types"
@@ -75,12 +74,10 @@ func (s *scheduler) Tick() {
 
 func (s *scheduler) ClearEventType(ev types.EventType) {
 	newQueue := make([]event, 0, MAX_EVENT_QUEUE)
-	fmt.Println("BEfore ", s.eventQueue)
 	for _, v := range s.eventQueue {
 		if v.evType != ev {
 			newQueue = append(newQueue, v)
 		}
 	}
 	s.eventQueue = newQueue
-	fmt.Println("AFTER", s.eventQueue)
 }

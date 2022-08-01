@@ -42,7 +42,7 @@ func (m *memory) write_oam(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	newAddr := addr - OAM_START
 
 	return func(val uint8) error {
-		m.gpu.Write_OAM(newAddr, val, false)
+		m.gpu.Write_OAM(newAddr, val, true)
 		return nil
 	}
 }
@@ -78,6 +78,9 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 	newAddr := addr - IO_START
 	return func(u uint8) error {
 		m.ioRegs[newAddr] = u
+		if newAddr == 0x50 {
+			m.isBootLoaderLoaded = false
+		}
 
 		if newAddr == 0x00 {
 			m.joypadCtx.SetSelBit(u)

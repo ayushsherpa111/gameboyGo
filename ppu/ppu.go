@@ -231,6 +231,12 @@ func SetPx(x, y int, color uint32, buffer []uint32) {
 	buffer[newPX] = color
 }
 
+func (p *ppu) reset() {
+	p.mode = MODE_0
+	p.ppu_regs[parseIdx(Ly, PPU_BASE)] = 0
+	p.winLY = 0
+}
+
 func (p *ppu) UpdateGPU() {
 	// TODO: Check if the PPU is currently in a V_BLANK mode before entering mode 0
 
@@ -249,7 +255,7 @@ func (p *ppu) UpdateGPU() {
 		p.dots = 0
 		*lY = 0
 		*lcd_s = setMode(*lcd_s, LCD_STAT_HBLANK)
-		p.mode = MODE_0
+		p.reset()
 		return
 	}
 
@@ -266,21 +272,21 @@ func (p *ppu) UpdateGPU() {
 	if *lY < 144 {
 		if p.dots == 80 {
 			// build sprite array from OAM
-			*lcd_s = setMode(*lcd_s, LCD_STAT_OAM_RAM)
-			p.mode = MODE_2
-			if *lcd_s&LCD_STAT_INT_OAM != 0 {
-				p.setInterrupt(LCD_INT)
-			}
+			*lcd_s = setMode(*lcd_s, LCD_STAT_DATA2DRIVER)
+			p.mode = MODE_3
 			p.fetchSprites(*lY, *lcd_c)
 
 		} else if p.dots == (80 + 172) {
-			*lcd_s = setMode(*lcd_s, LCD_STAT_DATA2DRIVER)
-			p.mode = MODE_3
-			p.scanLine(lcd_c, wY, wX, scY, scX, lY)
-		} else if p.dots == 80+172+204 {
 			*lcd_s = setMode(*lcd_s, LCD_STAT_HBLANK)
 			p.mode = MODE_0
 			if *lcd_s&LCD_STAT_INT_HBLANK != 0 {
+				p.setInterrupt(LCD_INT)
+			}
+			p.scanLine(lcd_c, wY, wX, scY, scX, lY)
+		} else if p.dots == 80+172+204 {
+			*lcd_s = setMode(*lcd_s, LCD_STAT_OAM_RAM)
+			p.mode = MODE_2
+			if *lcd_s&LCD_STAT_INT_OAM != 0 {
 				p.setInterrupt(LCD_INT)
 			}
 		}
@@ -532,7 +538,7 @@ func (p *ppu) Read_OAM(addr uint16) *uint8 {
 func (p *ppu) Write_OAM(addr uint16, val uint8, isDMA bool) {
 	// compare lcd_s to mode bits (last 2 bits)
 	// lcd_s := p.ppu_regs[parseIdx(LCD_S, PPU_BASE)]
-	if p.mode == MODE_2 || !isDMA {
+	if p.mode == MODE_2 {
 		return
 	}
 	p.oam[addr] = val

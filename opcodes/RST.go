@@ -1,6 +1,10 @@
 package opcodes
 
-import "github.com/ayushsherpa111/gameboyEMU/cpu"
+import (
+	"log"
+
+	"github.com/ayushsherpa111/gameboyEMU/cpu"
+)
 
 const (
 	vec00 uint16 = 0x00
@@ -24,8 +28,11 @@ func (r *rst) _RST(vec uint16) {
 }
 
 func (r *rst) Exec(op byte) {
-	var vec uint16 = r.regMap[op&0x0F][op&0xF0]
-	r._RST(vec)
+	if vec, ok := r.regMap[op&0x0F][op&0xF0]; ok {
+		r._RST(uint16(vec))
+	} else {
+		log.Fatalln("invalid address for RST")
+	}
 }
 
 func NewRST(c *cpu.CPU) *rst {
