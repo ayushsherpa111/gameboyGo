@@ -87,7 +87,8 @@ func (m *memory) write_io(addr uint16, cycleCount uint64) types.WriteMemFunc {
 		}
 
 		if newAddr == 0x04 {
-			m.ioRegs[newAddr] = 0
+			var DIV uint8 = m.ioRegs[newAddr]
+			m.ioRegs[newAddr] = DIV + uint8(((uint64(DIV)*256)-cycleCount)/256)
 		}
 
 		switch newAddr {
