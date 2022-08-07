@@ -164,12 +164,12 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU, joyp
 		return nil, errors.New("Failed to load ROM file")
 	}
 
+	// romData:            make([]uint8, 32*1024),
 	mem := &memory{
 		isBootLoaderLoaded: true,
 		eRAM:               make([]uint8, 8*1024),
 		wRAM:               make([]uint8, 8*1024),
 		hRAM:               make([]uint8, 127),
-		romData:            make([]uint8, 32*1024),
 		ioRegs:             make([]uint8, 128),
 		bootloader:         bootLoader,
 		rom:                ROM,
@@ -184,9 +184,9 @@ func InitMem(bootLoader []byte, ROM string, debug bool, gpu interfaces.GPU, joyp
 	mem.ioRegs[LY_REG-IO_START] = 0x90
 	gpu.RefInterruptFlag(&mem.ioRegs[INTERRUPT_FLAG-IO_START])
 
-	if e := mem.loadROM(romData); e != nil {
-		return nil, e
-	}
+	// if e := mem.loadROM(romData); e != nil {
+	// 	return nil, e
+	// }
 
 	return mem, nil
 }
@@ -198,9 +198,9 @@ func (m *memory) SetScheduler(sched interfaces.Scheduler) {
 func (m *memory) loadROM(romData []byte) error {
 	m.lgr.Infof("Loading ROM file...\n")
 
-	if len(romData) > (32 << 10) {
-		return errors.New("Invalid ROM length")
-	}
+	// if len(romData) > (32 << 10) {
+	// 	return errors.New("Invalid ROM length")
+	// }
 
 	copy(m.romData, romData)
 

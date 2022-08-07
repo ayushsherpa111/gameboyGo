@@ -41,7 +41,7 @@ func (m *memory) read_boot_loader(addr uint16) types.ReadMemFunc {
 
 func (m *memory) read_rom_data(addr uint16) types.ReadMemFunc {
 	return func() *uint8 {
-		return &m.romData[addr]
+		return m.cart.ReadROM(addr)
 	}
 }
 

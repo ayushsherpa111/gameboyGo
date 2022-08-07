@@ -8,7 +8,8 @@ import (
 
 // TODO: handle using `interface.cart`. Placeholder for now.
 func (m *memory) write_rom(addr uint16) types.WriteMemFunc {
-	return func(val uint8) error {
+	return func(v uint8) error {
+		m.cart.WriteROM(addr, v)
 		return nil
 	}
 }
