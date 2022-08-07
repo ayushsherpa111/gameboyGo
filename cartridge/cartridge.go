@@ -86,7 +86,7 @@ func (c *cart) ReadROM(addr uint16) *uint8 {
 		return &c.rom0[addr]
 	}
 	// TODO: return value from romn after getting the slice value from current MBC
-	return &c.romn[addr]
+	return &c.romn[addr-mbc.ROMN_START]
 }
 
 func (c *cart) WriteROM(addr uint16, val uint8) {
